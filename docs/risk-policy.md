@@ -1,4 +1,4 @@
-# Keel — Risk Policy
+# Veydrift — Risk Policy
 
 The rules that govern how Keel takes and limits risk. This is the authoritative
 description of the risk engine and guardrails. Values marked "default" are tunable
@@ -8,7 +8,7 @@ but must stay internally consistent (e.g. kill-switch ≥ drawdown alert).
 
 ## 1. Inputs (what the engine reads)
 
-Only four live signals, all from CMC:
+Only four live signals, sourced from Bitget Skill Hub and Bitget public REST API:
 
 - `price` — current USD price of the volatile asset.
 - `change_1h` — percent change over 1 hour.
@@ -61,11 +61,11 @@ kill-switch flattens to stables fully.
 All five are enforced in code, not cosmetic.
 
 ### 4.1 Token allowlist
-Tradeable set only:
-- Volatile: **ETH, CAKE, LINK**
-- Stables: **USDT, USDC, USD1, FDUSD**
-- **BNB** — gas reserve only, never a trading position.
-Anything off-list is rejected. BTC / BTCB are not tradeable.
+Tradeable pairs (Bitget spot):
+- Volatile: **BTCUSDT, ETHUSDT**
+- Stable: **USDT** (quote currency, held when reducing volatile exposure)
+
+Any pair outside this list is rejected.
 
 ### 4.2 Per-trade cap (default)
 No single swap exceeds a set fraction of portfolio value (default ~25%). Prevents

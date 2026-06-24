@@ -1,109 +1,79 @@
-# Keel — Demo Script
+# Veydrift — Demo Script
 
-A clear, end-to-end walkthrough of Keel as a product. The goal: in the first ten
-seconds a viewer understands what Keel is, that it is actively trading, and that
-every action is real and provable. Product language only.
+A clear end-to-end walkthrough of Veydrift as a product. Goal: in
+the first ten seconds a viewer understands what it is, that it is
+actively trading, and that every action is real and provable.
 
 ---
 
 ## 0. One-line framing
 
-> "Keel is an autonomous spot trading agent that rotates a self-custody wallet
-> between volatile tokens and stables to survive drawdowns while still capturing
-> upside — and every move is provable on-chain."
+> "Veydrift is an autonomous spot trading agent that rotates a Bitget
+> portfolio between volatile and stable assets based on a transparent,
+> deterministic risk score — and every decision is logged with proof."
 
 ---
 
 ## 1. The ten-second read (open on the dashboard)
 
-Point to the summary row and let it speak:
+Point to the summary row:
 
-- **Portfolio Value** — the wallet's total USD value, with 24h change.
-- **24h PnL** — realized + unrealized.
-- **Current Exposure** — how much is in volatile vs stable right now.
-- **Latest Swap** — the most recent autonomous action (e.g. `USDT → ETH`).
-- **Current Drawdown** — and that it is within the limit.
+- **Portfolio Value** — total USD value from Bitget account
+- **PnL** — change since first live snapshot
+- **Current Exposure** — volatile vs stable split
+- **Latest Order** — most recent autonomous action (e.g. BTCUSDT buy)
+- **Current Drawdown** — within the guardrail limit
 
-Top bar shows: **status Running**, **current mode** (e.g. Risk-on), the
-**wallet** short address, and a **live** last-updated time.
-
----
-
-## 2. "It's actively trading" (allocation + holdings)
-
-- **Portfolio Allocation** donut — the live split across ETH, CAKE, LINK and the
-  stables, plus a small BNB gas slice.
-- **Spot Holdings** table — each asset, its role (Volatile / Stable / Gas),
-  balance, USD value, allocation %, and 24h change.
-
-Message: this is a real spot portfolio the agent is managing, not a static demo.
+Top bar: status Running, current mode (Risk-on/Neutral/Risk-off),
+last updated time.
 
 ---
 
-## 3. "Here's why it acted" (signals + risk)
+## 2. "It's actively trading"
 
-- **Market Signals** — Fear & Greed, 1h and 24h basket change, trend.
-- **Risk Score Breakdown** — the **three** real components (1h change, 24h
-  change, Fear & Greed) and the resulting score with its risk label.
-
-Message: the mode is a transparent function of live signals, not a black box.
+- **Portfolio Allocation** donut — live split across BTCUSDT, ETHUSDT, USDT
+- **Spot Holdings** table — each asset, role, balance, USD value, alloc %,
+  24h change
 
 ---
 
-## 4. "Risk is always protected" (the edge)
+## 3. "Here's why it acted"
 
-- **Drawdown Guardrail** chart — current drawdown against the max-drawdown limit
-  and the kill-switch threshold, over time.
+- **Market Signals** — from Bitget Skill Hub: sentiment, 1h/24h change,
+  technical indicators
+- **Risk Score Breakdown** — three components (1h change, 24h change,
+  sentiment/Fear & Greed equivalent) and resulting score with risk label
 
-Message: Keel's differentiator is not a flashy return — it's that it is built not
-to blow up. Show how the kill-switch sits below the limit.
-
----
-
-## 5. "Every action is real" (the proof)
-
-- **Latest Autonomous Swap** — the route (`USDT → ETH`), amount in/out, USD
-  value, the reason, the time, and the **tx hash**.
-- **Proof Trail** — decision log, swap execution, x402 confirmation, agent
-  identity (verified), network (BNB Chain Mainnet) — each linking to on-chain
-  proof.
-- **x402 Confirmation** — the count of confirmed paid calls.
-
-Message: this is the part that matters — the on-chain piece is **real, not
-cosmetic**. Click a tx hash and show it resolve on a BSC explorer.
+Message: the mode is a transparent function of live Bitget signals,
+not a black box or an LLM decision.
 
 ---
 
-## 6. "It's self-custody and autonomous"
+## 4. "Risk is always protected"
 
-- Emphasize: the agent signs its own swaps locally; **keys never leave the
-  machine**; there is no custodial step.
-- Show **Agent Controls** (Pause / Resume / Refresh) and **System Health**
-  (market data, execution engine, TWAK service, x402 service, network, wallet).
+- **Drawdown Guardrail** chart — current drawdown vs limit and kill-switch
+  threshold over time
 
-Message: a self-custody holder could leave this running unattended.
-
----
-
-## 7. Bottom — the running record
-
-- **Swap / Decision Log** — Time, Mode, Action (Buy / Sell / Rebalance / Hold),
-  Route, Size, Value, Reason, Tx Hash. Scroll it to show a history of autonomous,
-  reasoned, provable actions.
+Message: Veydrift is built not to blow up. The kill-switch sits below
+the limit.
 
 ---
 
-## 8. Close
+## 5. "Every action is real"
 
-> "Keel trades from a self-custody wallet while keeping exposure, slippage, and
-> drawdown inside strict limits — autonomous, transparent, and provable."
+- **Latest Autonomous Order** — pair (e.g. BTCUSDT), side (buy/sell),
+  amount, USD value, reason, time, Bitget order ID
+- **Decision Log** — full history of autonomous, reasoned, provable actions
+
+Message: every order has a real Bitget order ID verifiable via the
+Bitget API or account dashboard.
 
 ---
 
-## Demo do / don't
+## 6. Demo do / don't
 
-- **Do** show a real tx hash resolving on-chain.
-- **Do** keep the language spot-only (swap / buy / sell / rebalance).
-- **Don't** say perps, leverage, long, short, liquidation, or order book.
-- **Don't** show any asset outside the allowlist.
-- **Don't** present mock numbers as live without saying so during development.
+- **DO** show a real Bitget order ID with verifiable proof.
+- **DO** keep language spot-only (order/buy/sell/rebalance).
+- **DON'T** say perps, leverage, long, short, liquidation, order book.
+- **DON'T** show any pair outside BTCUSDT/ETHUSDT/USDT.
+- **DON'T** present mock numbers as live without saying so.

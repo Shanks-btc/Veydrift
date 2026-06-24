@@ -1,182 +1,121 @@
-# Keel — Verification Record (`verify-in-docs`)
+# Veydrift — Verification Record
 
-This is the honest record of what was actually tested in practice and what was
-not. Every integration is classified with one of:
+Honest record of what was actually tested and what was not.
 
-- **confirmed** — tested successfully, real output observed.
-- **confirmed in script but not yet integrated** — works in isolation, not yet
-  wired into the agent.
-- **partial** — partially exercised; some part returned, some did not.
-- **risky** — attempted with an unclear/transient result; treat with caution.
-- **unavailable / not tested** — not exercised at all.
-- **fallback required** — needs an alternate path.
-- **[VERIFY IN DOCS]** — must be re-run and recorded before relying on it.
+Status classification:
+- **confirmed** — tested successfully, real output observed
+- **partial** — partially exercised
+- **not yet tested** — not exercised at all
+- **pending** — planned but not started
 
-**Honesty rule:** do not upgrade any item below to "confirmed" without a real
-successful run. Where exact output is not recorded verbatim, that is stated, and
-the canonical place to paste fresh raw output is `proofs/integration-results.md`.
+**Honesty rule:** do not upgrade any item to "confirmed" without a real
+successful run. Paste raw output into docs/ or a proofs/ file.
 
-Environment for all tests: Windows, Node `v24.14.0`, Python `3.14.5`.
+Environment: Windows, Node v24.14.0, Python 3.14.5
 
 ---
 
-## Integration status table
+## Integration status
 
 | # | Integration | Status |
-|---|-------------|--------|
-| 1 | CMC REST data | **confirmed** |
-| 2 | CMC MCP | **unavailable / not tested** |
-| 3 | Fear & Greed | **confirmed** |
-| 4 | price / 1h / 24h change | **confirmed** |
-| 5 | TWAK authentication | **confirmed** |
-| 6 | TWAK quote path | **confirmed** |
-| 7 | TWAK portfolio/balance path | **partial / risky** |
-| 8 | TWAK tiny real swap | **unavailable / not tested (fund-gated)** |
-| 9 | TWAK local signing behavior | **partial** (wallet+custody confirmed; live signing not exercised) |
-| 10 | x402 paid call path | **partial** (client confirmed; paid call not executed) |
-| 11 | x402 settlement chain/token | **confirmed (capability)** |
-| 12 | BSC RPC / explorer proof | **partial / [VERIFY IN DOCS]** |
-| 13 | BNB Agent SDK install | **confirmed** |
-| 14 | BNB Agent SDK identity registration | **unavailable / not tested** |
-| 15 | BNB Agent SDK network status | **confirmed** |
-| 16 | token allowlist / eligible assets | **confirmed** |
+|---|---|---|
+| 1 | Bitget public REST API (from Railway) | confirmed |
+| 2 | Bitget authenticated REST API (from Railway) | confirmed |
+| 3 | Bitget public REST API (from local machine, UK) | blocked — geo-restricted |
+| 4 | Bitget MCP server install | confirmed |
+| 5 | Bitget MCP `--paper-trading` flag | confirmed (flag recognized) |
+| 6 | Bitget MCP paper trading with regular key | not available (error 40099) |
+| 7 | Bitget MCP paper trading with Demo key | not yet tested (Demo key needed) |
+| 8 | Bitget Skill Hub `technical-analysis` | not yet tested |
+| 9 | Bitget Skill Hub `sentiment-analyst` | not yet tested |
+| 10 | Bitget Skill Hub `macro-analyst` | not yet tested |
+| 11 | Bitget Skill Hub `market-intel` | not yet tested |
+| 12 | Bitget Skill Hub `news-briefing` | not yet tested |
+| 13 | `spot_place_order` (live order) | not yet tested |
+| 14 | `get_account_assets` (real balance) | not yet tested |
+| 15 | `spot_get_fills` (order history) | not yet tested |
+| 16 | getagent-skill install | confirmed |
+| 17 | Python backtest (NautilusTrader) | not yet tested |
+| 18 | Risk engine formula | confirmed (293 tests passing) |
+| 19 | Guardrail chain | confirmed (293 tests passing) |
+| 20 | Railway deployment | partial (project created, not yet deployed) |
 
 ---
 
 ## Detail per integration
 
-### 1. CMC REST data — confirmed
-Endpoint: `GET https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=ETH`
-Header: `X-CMC_PRO_API_KEY`. Works on the **free Basic** tier.
-Observed live in `keel.cjs` v0.2 (sample run): `ETH = $1719.30`.
-Exact full JSON body not recorded verbatim — re-run and paste into
-`proofs/integration-results.md` if a raw capture is needed.
+### 1 & 2. Bitget REST API — confirmed
 
-### 2. CMC MCP — unavailable / not tested
-Only the REST path was exercised. The MCP surface was never called or tested in
-this chat. Do not claim MCP works. `[VERIFY IN DOCS]` if/when needed.
+Tested from Railway container (SSH session).
 
-### 3. Fear & Greed — confirmed
-Endpoint: `GET https://pro-api.coinmarketcap.com/v3/fear-and-greed/latest`
-(same `X-CMC_PRO_API_KEY` header). Returned a live value on the free Basic tier
-(sample: `F&G 23`). Code already handles its absence gracefully if a tier ever
-omits it.
+Public:
+```
+GET https://api.bitget.com/api/v2/spot/market/tickers?symbol=BTCUSDT
+→ code: 00000, price: 62766.78, change24h: -0.00433
+```
 
-### 4. price / 1h / 24h change — confirmed
-From `quotes/latest`: `quote.USD.price`, `quote.USD.percent_change_1h`,
-`quote.USD.percent_change_24h`. Sample run: `1h 0.24%`, `24h 2.10%`. Used as the
-risk-engine inputs.
+Authenticated:
+```
+GET https://api.bitget.com/api/v2/spot/account/assets
+→ code: 00000, msg: success, assets count: 3
+```
 
-### 5. TWAK authentication — confirmed
-`twak init` read `TWAK_ACCESS_ID` + `TWAK_HMAC_SECRET` from environment and
-saved credentials. Observed output: `Credentials saved from environment variables
-to ~/.twak/credentials.json`. Subsequent authenticated commands succeeded, which
-re-confirms auth.
-Note: on Windows the `export ...` hint printed by the CLI is Linux syntax; the
-working path is PowerShell `$env:VAR="..."` then `twak init`.
+HMAC-SHA256 signing: `timestamp + method + path + body`, then base64.
 
-### 6. TWAK quote path — confirmed
-Command form:
-`twak swap <amt> <from> <to> --chain bsc --slippage <pct> --quote-only --json`
-Sample (`5 USDT -> ETH`, bsc): returned fields
-`input, output, minReceived, provider, priceImpact` with provider `LiquidMesh`,
-`priceImpact 0`, `output ~0.002886 ETH`. Run both directly and inside
-`keel.cjs` v0.2.
+### 3. Local API access — blocked
 
-### 7. TWAK portfolio / balance path — partial / risky
-`twak wallet status --json` → confirmed (returned wallet config:
-`agentWallet: configured`, `keychainPassword: stored`, `chains: 25`).
-`twak wallet address --chain bsc --json` → confirmed (returned BSC address).
-`twak wallet balance --chain bsc --json` → **did NOT succeed**: returned
-`{"error":"Could not fetch balances. Please try again later.","errorCode":"NETWORK_ERROR"}`.
-This appeared transient (wallet is empty anyway), but a successful balance fetch
-was **not** observed. Re-run and record a clean balance result before relying on
-it. Marked **partial/risky**.
+`api.bitget.com` returns `ENOTFOUND` from UK network.
+Solution: always test from Railway container, not local machine.
 
-### 8. TWAK tiny real swap — unavailable / not tested
-No real (non-quote) swap has been executed. This is fund-gated: it needs the
-agent wallet funded. Execute form will be the quote command **with `--password`
-instead of `--quote-only`**. Record the resulting tx hash into
-`proofs/integration-results.md`. `[VERIFY IN DOCS]`.
+### 4 & 5. Bitget MCP server — confirmed
 
-### 9. TWAK local signing behavior — partial
-Self-custody wallet was created successfully: sealed encrypted keystore in
-`~/.twak`, password stored in the OS keychain, **no private key or seed exported
-by design** (`twak wallet` exposes no export command — keys stay sealed). Wallet
-creation messages observed: `Agent wallet created successfully`,
-`Wallet registered with backend`, `Generated addresses for 25 chains`,
-`Password saved to OS keychain`.
-However, **actual signing of a live transaction has not been exercised** (that is
-fund-gated, see #8). So self-custody storage is confirmed; end-to-end local
-signing of a real swap is **not yet** confirmed.
-Known quirk: `twak wallet create` throws a harmless libuv assertion on exit on
-Windows (`Assertion failed: !(handle->flags & UV_HANDLE_CLOSING) ... src\win\async.c`)
-**after** the work completes. It does not affect `price`/`swap`/`balance`.
+`bitget-mcp-server` v1.1.0 installed globally.
+`npx bitget-mcp-server --help` → exit code 0, all flags documented.
+`npx bitget-mcp-server --paper-trading --help` → exit code 0,
+flag recognized, description: "Enable Demo Trading mode (requires
+Demo API Key)".
 
-### 10. x402 paid call path — partial
-The x402 **client** is confirmed via `twak x402 info`: native x402 (V1 + V2) with
-EIP-3009 + Permit2 signing; commands `quote` (read-only, no wallet),
-`request` (pays), `info`. Options confirmed: `--max-payment <atomic>`
-(`10000` = 0.01 USDC at 6dp), `--prefer-network base|bsc`,
-`--prefer-method eip3009|permit2-exact`, `--yes`, `--json`.
-A real **paid** `request` has **not** been executed (fund-gated). Planned live
-form: `twak x402 request <url> --prefer-network base --max-payment 10000 --yes --json`.
-`[VERIFY IN DOCS]` for the actual payment + settlement tx.
+### 6. Paper trading with regular key — not available
 
-### 11. x402 settlement chain / token — confirmed (capability)
-From `twak x402 info`: settlement can be restricted to **base** or **bsc**, and
-`--max-payment 10000` corresponds to **0.01 USDC (6 decimals)**. For paying CMC,
-the intended route is **Base / USDC**. This is a confirmed capability of the
-client; not yet exercised with a real settlement.
+Testing `paptrading: 1` header with regular Trading key returned:
+`code: 40099, msg: "exchange environment is incorrect"`
+Conclusion: paper trading requires a separate Demo API key from
+Bitget's Demo Trading environment.
 
-### 12. BSC RPC / explorer proof — partial / [VERIFY IN DOCS]
-`twak chains --json` confirmed **BSC** is supported (`key: bsc`, BNB Smart
-Chain). The agent's BSC address resolves. But **no real tx hash exists yet**
-(no live swap/registration has run), so explorer proof links cannot be shown
-until live actions occur. Generate proof links once #8/#14 run; record in
-`proofs/integration-results.md`.
+### 7. Demo API key — not yet tested
 
-### 13. BNB Agent SDK install — confirmed
-`pip install bnbagent` succeeded on **Python 3.14.5** (wheels available for
-cp314). Installed `bnbagent 0.3.6` with `web3 7.16.0`, `eth-account 0.13.7`, and
-deps. One harmless warning: a `websockets.exe` script dir not on PATH —
-irrelevant, the package is used as a library.
+Demo Trading UI not found at standard Bitget URL.
+May be geo-restricted in UK. Status: PENDING investigation.
 
-### 14. BNB Agent SDK identity registration — unavailable / not tested
-`register_agent` (an on-chain write; gas-free via paymaster) has **not** been
-run. Only network resolution (#15) was tested. `[VERIFY IN DOCS]`.
+### 18 & 19. Risk engine and guardrails — confirmed
 
-### 15. BNB Agent SDK network status — confirmed
-`from bnbagent import config; config.resolve_network('bsc-mainnet')` returned:
-`registry: 0x8004A169FB4a3325136EB29fA0ceB6D2e539a432 | gas-free: True`.
-Mainnet registry resolves and the paymaster (gas-free) flag is true.
-
-### 16. token allowlist / eligible assets — confirmed
-The chosen allowlist (ETH, CAKE, LINK volatile; USDT, USDC, USD1, FDUSD stables)
-was checked against the supported BEP-20 asset universe and all are present.
-**BNB, BTC, BTCB are NOT in the tradeable set** — BNB is a gas reserve only. The
-UI and agent must hold/show only allowlist assets.
+Inherited from Keel. All 293 tests pass.
+`engine.ts`, `cycle.ts`, `gate.ts` are PROTECTED — never modify.
 
 ---
 
-## Confirmed reference facts (for reuse in code)
+## Confirmed reference values
 
-- **Agent wallet (BSC):** `0x66af72374Eb358cf939bc1954b8F62EfcF08E10a`
-  (created `2026-06-15T13:25:39Z`; password in OS keychain; sealed keystore in
-  `~/.twak`).
-- **TWAK command surfaces confirmed available:** `chains`, `compete`
-  (`register`, `status`), `x402` (`request`, `quote`, `info`), `erc8004`
-  (`register`, `set-uri`, `set-metadata`, `get-metadata`, `show`), `wallet`
-  (`create`, `address`, `addresses`, `balance`, `keychain`, `connect`, `status`,
-  `portfolio`, `sign-message`, `register`).
-- **TWAK quote fields:** `input`, `output`, `minReceived`, `provider`,
-  `priceImpact`.
-- **Chain flag:** `--chain bsc`.
-- **CMC headers/endpoints:** `X-CMC_PRO_API_KEY`; `quotes/latest`;
-  `v3/fear-and-greed/latest`.
+```
+Bitget API base URL:  https://api.bitget.com
+Signing method:       HMAC-SHA256(timestamp + METHOD + path + body, secretKey)
+                      then base64 encode
+MCP server version:   1.1.0
+MCP default modules:  spot, futures, account
+Available modules:    spot, futures, account, margin, copytrading,
+                      convert, earn, p2p, broker
+getagent-skill version: 0.3.3
+Python backtest engine: NautilusTrader (via getagent-skill)
+```
 
-## What is NOT recorded verbatim
-Full raw JSON bodies for CMC `quotes/latest`, the exact swap-quote JSON, and the
-`twak wallet status` full payload were summarized, not captured byte-for-byte. If
-byte-exact evidence is required, re-run each command and paste the raw output into
-`proofs/integration-results.md`.
+---
+
+## What is NOT yet recorded
+
+- Raw Bitget Skill Hub responses (skills not yet called)
+- Real `spot_place_order` response (not yet executed)
+- Real `get_account_assets` response from MCP (not yet called via MCP)
+- Python backtest output (not yet run)
+
+Paste raw outputs into `docs/verify-in-docs.md` or a `proofs/` directory
+as each integration is tested.
