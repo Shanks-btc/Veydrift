@@ -7,7 +7,7 @@ import {
   Tooltip,
   XAxis,
 } from "recharts";
-import type { PortfolioValue, PortfolioFreshness } from "@keel/shared";
+import type { PortfolioValue, PortfolioFreshness } from "@veydrift/shared";
 import { fmtUsd, fmtPct, fmtTime, pctColor } from "../lib/format";
 import { Card, CardHeader } from "./ui/Card";
 

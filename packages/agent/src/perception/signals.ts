@@ -10,7 +10,7 @@
 // The decision loop is fully functional on REST alone. Hub is never on the
 // critical path — the daily qualification attempt never depends on Hub being up.
 
-import type { MarketSnapshot, HubSignals, HubAttempt, SignalsResult } from "@keel/shared";
+import type { MarketSnapshot, HubSignals, HubAttempt, SignalsResult } from "@veydrift/shared";
 import { fetchMarketSnapshot } from "./cmc.js";
 import {
   isHubEnabled,
@@ -44,7 +44,7 @@ export async function fetchSignals(
   let hubAttempt: HubAttempt | undefined;
 
   if (isHubEnabled()) {
-    console.log(`[keel hub] attempting Hub price + enrichment for ${symbol}`);
+    console.log(`[veydrift hub] attempting Hub price + enrichment for ${symbol}`);
 
     // Capture per-tool outcomes for the hubAttempt audit record.
     let priceError: string | undefined;
@@ -93,7 +93,7 @@ export async function fetchSignals(
     };
 
     console.log(
-      `[keel hub] cycle complete · connected=${hubConnected} priceSource=${priceSource} ` +
+      `[veydrift hub] cycle complete · connected=${hubConnected} priceSource=${priceSource} ` +
       `price=${hubAttempt.price} ta=${hubAttempt.ta} ` +
       `macro=${hubAttempt.macro} btcDom=${hubAttempt.btcDom}`,
     );

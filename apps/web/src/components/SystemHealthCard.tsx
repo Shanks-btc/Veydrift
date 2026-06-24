@@ -1,4 +1,4 @@
-import type { HealthItem } from "@keel/shared";
+import type { HealthItem } from "@veydrift/shared";
 import { healthColor } from "../lib/format";
 import { Card, CardHeader } from "./ui/Card";
 

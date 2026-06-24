@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { computeRiskScore, pickMode, shouldRebalance } from "../src/risk/engine.js";
 import { DEFAULT_POLICY } from "../src/config.js";
-import type { MarketSnapshot } from "@keel/shared";
+import type { MarketSnapshot } from "@veydrift/shared";
 
 // ── Helper ────────────────────────────────────────────────────────────────────
 

@@ -1,4 +1,4 @@
-import type { PnL } from "@keel/shared";
+import type { PnL } from "@veydrift/shared";
 import { fmtUsd, fmtPct, pctColor } from "../lib/format";
 import { Card, CardHeader } from "./ui/Card";
 

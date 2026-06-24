@@ -1,4 +1,4 @@
-import type { Exposure, Swap, PnL } from "@keel/shared";
+import type { Exposure, Swap, PnL } from "@veydrift/shared";
 import { fmtUsd, fmtPct, pctColor } from "../lib/format";
 
 interface Props {

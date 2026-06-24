@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@keel/shared"],
+  transpilePackages: ["@veydrift/shared"],
   webpack: (config) => {
     // Allow TypeScript ESM packages to use .js extension aliases in imports.
     // Next.js webpack doesn't resolve .js → .ts automatically for transpilePackages.

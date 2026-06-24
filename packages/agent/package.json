@@ -1,5 +1,5 @@
 {
-  "name": "@keel/agent",
+  "name": "@veydrift/agent",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
     "cycle:dry": "tsx src/runner.ts --dry-run"
   },
   "dependencies": {
-    "@keel/shared": "*"
+    "@veydrift/shared": "*"
   },
   "devDependencies": {
     "@types/node": "^22.15.29",

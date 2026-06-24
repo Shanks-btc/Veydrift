@@ -8,7 +8,7 @@
 //   • Must not block daily qualifying attempt (non-critical path).
 
 import { execSync } from "child_process";
-import type { X402PaymentProof } from "@keel/shared";
+import type { X402PaymentProof } from "@veydrift/shared";
 
 // ── Runner type ───────────────────────────────────────────────────────────────
 
@@ -110,15 +110,15 @@ export function attemptX402(
     const proof = parseX402Output(raw, url);
     if (!proof) {
       const msg = `x402: no tx hash in output: ${raw.slice(0, 200)}`;
-      console.warn(`[keel x402] ${msg}`);
+      console.warn(`[veydrift x402] ${msg}`);
       return { ok: false, error: msg };
     }
     // Log Base tx hash — strictly separate from BSC trade hashes
-    console.log(`[keel x402] Base payment confirmed — ${proof.txHash} (${proof.amountUsdc} USDC)`);
+    console.log(`[veydrift x402] Base payment confirmed — ${proof.txHash} (${proof.amountUsdc} USDC)`);
     return { ok: true, proof };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.warn(`[keel x402] payment failed — proceeding without: ${msg}`);
+    console.warn(`[veydrift x402] payment failed — proceeding without: ${msg}`);
     return { ok: false, error: msg };
   }
 }

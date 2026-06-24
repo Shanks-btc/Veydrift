@@ -1,4 +1,4 @@
-import type { RiskScore } from "@keel/shared";
+import type { RiskScore } from "@veydrift/shared";
 import { modeColor } from "../lib/format";
 import { Card, CardHeader } from "./ui/Card";
 

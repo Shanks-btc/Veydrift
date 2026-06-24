@@ -5,7 +5,7 @@
 import { NextResponse } from "next/server";
 import { readFileSync, writeFileSync } from "fs";
 import { join, resolve } from "path";
-import type { AgentPersistentState, AuditEntry } from "@keel/shared";
+import type { AgentPersistentState, AuditEntry } from "@veydrift/shared";
 
 export const dynamic = "force-dynamic";
 

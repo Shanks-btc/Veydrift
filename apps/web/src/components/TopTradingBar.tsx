@@ -1,6 +1,6 @@
 "use client";
 
-import type { AgentStatus, RiskMode } from "@keel/shared";
+import type { AgentStatus, RiskMode } from "@veydrift/shared";
 import { shortAddress, fmtRelative, modeColor } from "../lib/format";
 
 interface Props {
@@ -59,7 +59,7 @@ export function TopTradingBar({
               color: "var(--text-primary)",
             }}
           >
-            Keel
+            Veydrift
           </span>
           <span
             className="top-bar-subtitle"
@@ -70,7 +70,7 @@ export function TopTradingBar({
               letterSpacing: "0.04em",
             }}
           >
-            AUTONOMOUS SPOT AGENT · BNB CHAIN
+            AUTONOMOUS SPOT AGENT · BITGET
           </span>
         </div>
       </div>

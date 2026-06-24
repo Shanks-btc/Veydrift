@@ -9,7 +9,7 @@
 //                       NEVER logged (audit shows <redacted>).
 
 import { execSync } from "child_process";
-import type { TwakQuote, TradeProposal, ExecutionPlan, ExecutionResult } from "@keel/shared";
+import type { TwakQuote, TradeProposal, ExecutionPlan, ExecutionResult } from "@veydrift/shared";
 
 // ── Runner types ──────────────────────────────────────────────────────────────
 
@@ -191,7 +191,7 @@ function executeLive(plan: ExecutionPlan, runner: LiveRunner): ExecutionResult {
   }
 
   // 3. Audit log with password replaced by <redacted>
-  console.log(`[keel live] executing: ${buildAuditCommand(plan)}`);
+  console.log(`[veydrift live] executing: ${buildAuditCommand(plan)}`);
 
   // 4. Build real args: replace <keychain> placeholder with the actual password.
   //    realArgs are NEVER logged — they contain the plaintext password.
@@ -250,7 +250,7 @@ export function execute(
 ): ExecutionPlan | ExecutionResult {
   if (mode === "dry-run") {
     const cmd = [plan.command, ...plan.args].join(" ");
-    console.log(`[keel dry-run] would execute: ${cmd}`);
+    console.log(`[veydrift dry-run] would execute: ${cmd}`);
     return plan;
   }
   return executeLive(plan, runner);

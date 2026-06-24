@@ -2,7 +2,7 @@
 // No file I/O — route.ts wraps this with read/write. Exported so tests can
 // exercise the transformation without touching the filesystem.
 
-import type { DrawdownPoint } from "@keel/shared";
+import type { DrawdownPoint } from "@veydrift/shared";
 
 export const MAX_HISTORY = 200;
 

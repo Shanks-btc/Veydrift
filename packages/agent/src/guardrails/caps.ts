@@ -1,7 +1,7 @@
 // Per-trade cap + daily-loss cap guardrails — pure, no side-effects.
 // Thresholds from docs/risk-policy.md §4.2, §4.3.
 
-import type { GuardrailResult, PolicyConfig } from "@keel/shared";
+import type { GuardrailResult, PolicyConfig } from "@veydrift/shared";
 import { DEFAULT_POLICY } from "../config.js";
 
 // ── Per-trade cap ─────────────────────────────────────────────────────────────

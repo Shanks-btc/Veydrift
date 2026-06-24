@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { runCycle } from "../src/loop/cycle.js";
 import { evaluateTrade } from "../src/loop/gate.js";
-import type { MarketSnapshot, PortfolioState, TwakQuote } from "@keel/shared";
+import type { MarketSnapshot, PortfolioState, TwakQuote } from "@veydrift/shared";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

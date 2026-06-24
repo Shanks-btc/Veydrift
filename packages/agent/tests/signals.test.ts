@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { fetchSignals, type RestFetcher } from "../src/perception/signals.js";
 import type { HubToolRunner } from "../src/perception/hub.js";
-import type { MarketSnapshot } from "@keel/shared";
+import type { MarketSnapshot } from "@veydrift/shared";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

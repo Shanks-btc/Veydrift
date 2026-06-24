@@ -2,7 +2,7 @@
 // Endpoints confirmed in docs/verify-in-docs.md §1, §3, §4.
 // Mirrors the verified fetch pattern in keel.cjs perceive().
 
-import type { MarketSnapshot } from "@keel/shared";
+import type { MarketSnapshot } from "@veydrift/shared";
 
 const BASE = "https://pro-api.coinmarketcap.com";
 

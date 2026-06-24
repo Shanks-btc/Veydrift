@@ -19,7 +19,7 @@ import { NextResponse } from "next/server";
 import { readFileSync, writeFileSync } from "fs";
 import { join, resolve } from "path";
 import { execSync } from "child_process";
-import type { PortfolioSnapshot, PortfolioFreshness, DrawdownPoint } from "@keel/shared";
+import type { PortfolioSnapshot, PortfolioFreshness, DrawdownPoint } from "@veydrift/shared";
 import { applyDrawdownPoint } from "../../../lib/drawdown-history";
 
 export const dynamic = "force-dynamic";

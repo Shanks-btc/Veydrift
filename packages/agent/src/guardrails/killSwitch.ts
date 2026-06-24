@@ -5,7 +5,7 @@
 // Never-dust invariant: the kill-switch rotates to in-scope stable assets,
 // keeping the portfolio fully deployed in stables, not to zero.
 
-import type { KillSwitchResult, PolicyConfig } from "@keel/shared";
+import type { KillSwitchResult, PolicyConfig } from "@veydrift/shared";
 import { DEFAULT_POLICY } from "../config.js";
 
 // drawdownPct is a NEGATIVE number, e.g. -15.0 means 15% below HWM.

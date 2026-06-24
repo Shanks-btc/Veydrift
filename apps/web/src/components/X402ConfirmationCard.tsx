@@ -1,4 +1,4 @@
-import type { X402Confirmation } from "@keel/shared";
+import type { X402Confirmation } from "@veydrift/shared";
 import { fmtRelative } from "../lib/format";
 import { Card, CardHeader } from "./ui/Card";
 

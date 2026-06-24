@@ -1,4 +1,4 @@
-import type { ProofEntry } from "@keel/shared";
+import type { ProofEntry } from "@veydrift/shared";
 import { fmtRelative, shortHash } from "../lib/format";
 import { Card, CardHeader } from "./ui/Card";
 

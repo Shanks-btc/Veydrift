@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { applyDrawdownPoint, MAX_HISTORY } from "../src/lib/drawdown-history";
-import type { DrawdownPoint } from "@keel/shared";
+import type { DrawdownPoint } from "@veydrift/shared";
 
 function pt(timestamp: string, drawdownPct: number): DrawdownPoint {
   return { timestamp, drawdownPct };

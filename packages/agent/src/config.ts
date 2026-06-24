@@ -1,4 +1,4 @@
-import type { PolicyConfig } from "@keel/shared";
+import type { PolicyConfig } from "@veydrift/shared";
 
 // Default policy — values are taken directly from docs/risk-policy.md.
 // All thresholds are tunable by passing an overridden PolicyConfig; these

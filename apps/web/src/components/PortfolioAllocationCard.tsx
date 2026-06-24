@@ -8,7 +8,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import type { AllocationSlice } from "@keel/shared";
+import type { AllocationSlice } from "@veydrift/shared";
 import { fmtUsd } from "../lib/format";
 import { Card, CardHeader } from "./ui/Card";
 

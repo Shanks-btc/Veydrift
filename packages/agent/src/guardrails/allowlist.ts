@@ -2,7 +2,7 @@
 // Allowlist confirmed in docs/risk-policy.md §4.1 and verify-in-docs.md §16.
 // BNB is gas-only and is NOT in the tradeable set.
 
-import type { AssetSymbol, GuardrailResult } from "@keel/shared";
+import type { AssetSymbol, GuardrailResult } from "@veydrift/shared";
 
 // Spot-only tradeable assets. No perps, no leverage, no order book.
 export const VOLATILE_ASSETS: ReadonlySet<AssetSymbol> = new Set([

@@ -1,4 +1,4 @@
-import type { Swap } from "@keel/shared";
+import type { Swap } from "@veydrift/shared";
 import { fmtUsd, fmtNum, fmtDateTime, shortHash } from "../lib/format";
 import { Card, CardHeader } from "./ui/Card";
 

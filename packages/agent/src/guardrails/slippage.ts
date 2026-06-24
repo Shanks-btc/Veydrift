@@ -4,7 +4,7 @@
 // quote output in docs/verify-in-docs.md §6.
 // Threshold from docs/risk-policy.md §4.4.
 
-import type { GuardrailResult, PolicyConfig, TwakQuote } from "@keel/shared";
+import type { GuardrailResult, PolicyConfig, TwakQuote } from "@veydrift/shared";
 import { DEFAULT_POLICY } from "../config.js";
 
 // Check the TWAK quote's priceImpact against the configured slippage limit.

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, createElement } from "react";
-import type { DayAttemptEntry, AgentPersistentState } from "@keel/shared";
+import type { DayAttemptEntry, AgentPersistentState } from "@veydrift/shared";
 import { Card, CardHeader } from "./ui/Card";
 import { fmtUsd, fmtDateTime } from "../lib/format";
 

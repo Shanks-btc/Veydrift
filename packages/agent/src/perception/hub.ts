@@ -13,7 +13,7 @@
 //
 // SPOT-ONLY: never call get_global_crypto_derivatives_metrics.
 
-import type { MarketSnapshot, HubSignals } from "@keel/shared";
+import type { MarketSnapshot, HubSignals } from "@veydrift/shared";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -195,14 +195,14 @@ export async function checkHubConnectivity(
   if (runner) return true; // injected runner = treat as connected in tests
   const key = getHubApiKey();
   if (!key) {
-    console.warn("[keel hub] disabled — Hub API key not set");
+    console.warn("[veydrift hub] disabled — Hub API key not set");
     return false;
   }
   try {
     _sessionId = await mcpInitialize(key);
     return true;
   } catch (err) {
-    console.warn(`[keel hub] unreachable — running on REST only. ${String(err)}`);
+    console.warn(`[veydrift hub] unreachable — running on REST only. ${String(err)}`);
     return false;
   }
 }
@@ -273,27 +273,27 @@ export async function fetchHubSnapshot(
   const id = CMC_HUB_ID[symbol];
   if (id == null) {
     const msg = `${symbol} not in CMC Hub ID map — falling back to REST`;
-    console.warn(`[keel hub] price fetch skipped: ${msg}`);
+    console.warn(`[veydrift hub] price fetch skipped: ${msg}`);
     if (onError) onError(msg);
     return null;
   }
 
   const t0 = Date.now();
-  console.log(`[keel hub] price fetch · get_crypto_quotes_latest (${symbol} id=${id})`);
+  console.log(`[veydrift hub] price fetch · get_crypto_quotes_latest (${symbol} id=${id})`);
   try {
     const raw = await runner("get_crypto_quotes_latest", { id });
     if (process.env["HUB_DEBUG"] === "yes") {
-      console.log("[keel hub] raw price response:", JSON.stringify(raw).slice(0, 500));
+      console.log("[veydrift hub] raw price response:", JSON.stringify(raw).slice(0, 500));
     }
     const q = extractQuoteUsd(raw, symbol, id);
     if (!q) {
       const msg = `null price in response for ${symbol} (id=${id})`;
-      console.warn(`[keel hub] price fetch failed: ${msg} — falling back to REST`);
+      console.warn(`[veydrift hub] price fetch failed: ${msg} — falling back to REST`);
       if (onError) onError(msg);
       return null;
     }
     console.log(
-      `[keel hub] price ok · ${symbol}=$${q.price.toFixed(2)} ` +
+      `[veydrift hub] price ok · ${symbol}=$${q.price.toFixed(2)} ` +
       `1h=${q.change1h.toFixed(2)}% 24h=${q.change24h.toFixed(2)}% · ${Date.now() - t0}ms`,
     );
     return {
@@ -306,7 +306,7 @@ export async function fetchHubSnapshot(
     };
   } catch (err) {
     const msg = String(err);
-    console.warn(`[keel hub] price fetch failed: ${msg} — falling back to REST`);
+    console.warn(`[veydrift hub] price fetch failed: ${msg} — falling back to REST`);
     if (onError) onError(msg);
     return null;
   }
@@ -420,51 +420,51 @@ export async function fetchHubEnrichment(
     )
       .then(raw => {
         if (process.env["HUB_DEBUG"] === "yes") {
-          console.log("[keel hub] raw ta response:", JSON.stringify(raw).slice(0, 500));
+          console.log("[veydrift hub] raw ta response:", JSON.stringify(raw).slice(0, 500));
         }
         signals.rsi = extractRsi(raw);
         const rsiLabel = signals.rsi != null ? signals.rsi.toFixed(1) : "no data available";
-        console.log(`[keel hub] ta ok · RSI=${rsiLabel}`);
+        console.log(`[veydrift hub] ta ok · RSI=${rsiLabel}`);
         if (onToolResult) onToolResult("ta", "ok");
       })
       .catch((err: unknown) => {
         const msg = String(err);
-        console.warn(`[keel hub] ta failed: ${msg} — TA-caution overlay skipped this cycle`);
+        console.warn(`[veydrift hub] ta failed: ${msg} — TA-caution overlay skipped this cycle`);
         if (onToolResult) onToolResult("ta", msg);
       }),
 
     runner("get_upcoming_macro_events", {})
       .then(raw => {
         if (process.env["HUB_DEBUG"] === "yes") {
-          console.log("[keel hub] raw macro response:", JSON.stringify(raw).slice(0, 500));
+          console.log("[veydrift hub] raw macro response:", JSON.stringify(raw).slice(0, 500));
         }
         signals.hoursToNextMacroEvent = extractHoursToNextEvent(raw);
         const h = signals.hoursToNextMacroEvent;
         const macroLabel = h != null ? `${h.toFixed(1)}h` : "no data available";
-        console.log(`[keel hub] macro ok · next event in ${macroLabel}`);
+        console.log(`[veydrift hub] macro ok · next event in ${macroLabel}`);
         if (onToolResult) onToolResult("macro", "ok");
       })
       .catch((err: unknown) => {
         const msg = String(err);
-        console.warn(`[keel hub] macro failed: ${msg} — macro-event overlay skipped this cycle`);
+        console.warn(`[veydrift hub] macro failed: ${msg} — macro-event overlay skipped this cycle`);
         if (onToolResult) onToolResult("macro", msg);
       }),
 
     runner("get_global_metrics_latest", {})
       .then(raw => {
         if (process.env["HUB_DEBUG"] === "yes") {
-          console.log("[keel hub] raw btcDom response:", JSON.stringify(raw).slice(0, 500));
+          console.log("[veydrift hub] raw btcDom response:", JSON.stringify(raw).slice(0, 500));
         }
         signals.btcDominancePct = extractBtcDominance(raw);
         const domLabel = signals.btcDominancePct != null
           ? `${signals.btcDominancePct.toFixed(1)}%`
           : "no data available";
-        console.log(`[keel hub] btcDom ok · BTC dominance=${domLabel}`);
+        console.log(`[veydrift hub] btcDom ok · BTC dominance=${domLabel}`);
         if (onToolResult) onToolResult("btcDom", "ok");
       })
       .catch((err: unknown) => {
         const msg = String(err);
-        console.warn(`[keel hub] btcDom failed: ${msg} — regime-bias overlay skipped this cycle`);
+        console.warn(`[veydrift hub] btcDom failed: ${msg} — regime-bias overlay skipped this cycle`);
         if (onToolResult) onToolResult("btcDom", msg);
       }),
   ]);

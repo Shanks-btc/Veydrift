@@ -9,7 +9,7 @@ import {
   updateHwm,
   recordDayAttempt,
 } from "../src/state/persistence.js";
-import type { AgentPersistentState, DayAttemptEntry } from "@keel/shared";
+import type { AgentPersistentState, DayAttemptEntry } from "@veydrift/shared";
 
 // ── getDayKey ─────────────────────────────────────────────────────────────────
 

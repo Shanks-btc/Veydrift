@@ -4,7 +4,7 @@ import { resolve } from "path";
 export default defineConfig({
   resolve: {
     alias: {
-      "@keel/shared": resolve(__dirname, "../../packages/shared/src/index.ts"),
+      "@veydrift/shared": resolve(__dirname, "../../packages/shared/src/index.ts"),
     },
   },
   test: {

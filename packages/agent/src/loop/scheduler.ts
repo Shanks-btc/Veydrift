@@ -28,7 +28,7 @@ import type {
   DayAttemptEntry,
   DrawdownGateResult,
   GuardrailResult,
-} from "@keel/shared";
+} from "@veydrift/shared";
 import type { RestFetcher } from "../perception/signals.js";
 import type { HubToolRunner } from "../perception/hub.js";
 import type { QuoteRunner, LiveRunner } from "../execution/twak.js";
@@ -326,7 +326,7 @@ export async function runScheduler(input: SchedulerInput): Promise<SchedulerResu
     // for this cycle and fall through to the fallback qualification attempt instead.
     const isRiskIncreasing = STABLES.has(proposal.fromAsset) && !STABLES.has(proposal.toAsset);
     if (riskOffOverrideActive && isRiskIncreasing) {
-      console.log("[keel scheduler] force-risk-off override active — suppressing stable→volatile trade");
+      console.log("[veydrift scheduler] force-risk-off override active — suppressing stable→volatile trade");
       // Falls through to Path 3 (fallback qualification attempt) below
     } else {
       const drawdownGate = checkProjectedDrawdown({

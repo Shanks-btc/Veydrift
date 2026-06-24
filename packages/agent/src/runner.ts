@@ -42,7 +42,7 @@ import { promisify } from "util";
 import { existsSync, writeFileSync } from "fs";
 
 const execAsync = promisify(exec);
-import type { ExecutionPlan, ExecutionResult, PortfolioSnapshot } from "@keel/shared";
+import type { ExecutionPlan, ExecutionResult, PortfolioSnapshot } from "@veydrift/shared";
 import { runScheduler } from "./loop/scheduler.js";
 import {
   loadState,
@@ -137,7 +137,7 @@ async function fetchRealBalance(): Promise<RealBalance | null> {
       raw = err.stdout; // Windows exit-code-9: stdout has the data
     } else {
       const safeMsg = (err.message ?? String(e)).replace(REDACT_PW_RE, "--password <redacted>");
-      console.log(`[keel runner] TWAK balance query failed, using env vars: ${safeMsg}`);
+      console.log(`[veydrift runner] TWAK balance query failed, using env vars: ${safeMsg}`);
       return null;
     }
   }
@@ -147,7 +147,7 @@ async function fetchRealBalance(): Promise<RealBalance | null> {
     const jsonStart = raw.indexOf("{");
     const jsonEnd   = raw.lastIndexOf("}");
     if (jsonStart === -1 || jsonEnd === -1) {
-      console.log("[keel runner] TWAK balance query failed, using env vars: no JSON in output");
+      console.log("[veydrift runner] TWAK balance query failed, using env vars: no JSON in output");
       return null;
     }
 
@@ -204,14 +204,14 @@ async function fetchRealBalance(): Promise<RealBalance | null> {
     if (totalValueUsd === 0) {
       // Both volatile and stable are 0 — either empty wallet or no price data.
       // Return null so caller falls back to env vars.
-      console.log("[keel runner] TWAK balance returned zero portfolio value — falling back to env vars");
+      console.log("[veydrift runner] TWAK balance returned zero portfolio value — falling back to env vars");
       return null;
     }
 
     return { totalValueUsd, volatileValueUsd, stableValueUsd, tokenBalances };
   } catch (e) {
     const safeMsg = String(e).replace(REDACT_PW_RE, "--password <redacted>");
-    console.log(`[keel runner] TWAK balance parse error, using env vars: ${safeMsg}`);
+    console.log(`[veydrift runner] TWAK balance parse error, using env vars: ${safeMsg}`);
     return null;
   }
 }
@@ -244,10 +244,10 @@ async function main(): Promise<void> {
       delete patchedState.dayLedger[todayKey];
       saveState(patchedState, dataDir);
       writeFileSync(retryMarker, todayKey, "utf8");
-      console.log(`[keel runner] today (${todayKey}) was BLOCKED — clearing for one retry`);
+      console.log(`[veydrift runner] today (${todayKey}) was BLOCKED — clearing for one retry`);
     } else {
       // Retry already attempted today — do not retry again
-      console.log(`[keel runner] today (${todayKey}) was BLOCKED and already retried — not retrying again`);
+      console.log(`[veydrift runner] today (${todayKey}) was BLOCKED and already retried — not retrying again`);
     }
   }
 
@@ -280,7 +280,7 @@ async function main(): Promise<void> {
   // On first run with no real balance AND no env var AND no persisted HWM.
   if (totalValueUsd === 0) {
     console.error(
-      "[keel runner] PORTFOLIO_VALUE_USD is not set and no persisted HWM found.\n" +
+      "[veydrift runner] PORTFOLIO_VALUE_USD is not set and no persisted HWM found.\n" +
       "              Set PORTFOLIO_VALUE_USD=<total wallet value in USD> and re-run.\n" +
       "              Example: PORTFOLIO_VALUE_USD=500 npm run run:cycle",
     );
@@ -288,15 +288,15 @@ async function main(): Promise<void> {
   }
 
   if (isDryRun) {
-    console.log("[keel runner] DRY-RUN mode — no funds will move · day ledger not updated");
+    console.log("[veydrift runner] DRY-RUN mode — no funds will move · day ledger not updated");
   }
-  console.log(`[keel runner] cycle start · ${new Date().toISOString()}`);
+  console.log(`[veydrift runner] cycle start · ${new Date().toISOString()}`);
   console.log(
-    `[keel runner] portfolio  total=$${totalValueUsd.toFixed(2)} ` +
+    `[veydrift runner] portfolio  total=$${totalValueUsd.toFixed(2)} ` +
     `volatile=$${volatileValueUsd.toFixed(2)} ` +
     `stable=$${stableValueUsd.toFixed(2)} (${balanceSource})`,
   );
-  console.log(`[keel runner] HWM=$${hwm.toFixed(2)} · data=${dataDir}`);
+  console.log(`[veydrift runner] HWM=$${hwm.toFixed(2)} · data=${dataDir}`);
 
   // ── Run ONE scheduler cycle ─────────────────────────────────────────────
   // Live mode: deps minimal — scheduler defaults to real file I/O and
@@ -342,22 +342,22 @@ async function main(): Promise<void> {
 
   // ── Log result (BNB_WALLET_PASSWORD never appears here) ─────────────────
   const modeTag = isDryRun ? "[dry-run] " : "";
-  console.log(`[keel runner] ${modeTag}action=${result.action} · date=${result.date}`);
+  console.log(`[veydrift runner] ${modeTag}action=${result.action} · date=${result.date}`);
   if (result.txHash) {
     // BSC tx hash — never a Base/x402 hash
-    console.log(`[keel runner] ${modeTag}tx=${result.txHash}`);
-    console.log(`[keel runner] ${modeTag}bscscan=https://bscscan.com/tx/${result.txHash}`);
+    console.log(`[veydrift runner] ${modeTag}tx=${result.txHash}`);
+    console.log(`[veydrift runner] ${modeTag}bscscan=https://bscscan.com/tx/${result.txHash}`);
   }
   if (result.blockedReason) {
-    console.log(`[keel runner] ${modeTag}blocked: ${result.blockedReason}`);
+    console.log(`[veydrift runner] ${modeTag}blocked: ${result.blockedReason}`);
   }
 
-  console.log(`[keel runner] ${modeTag}cycle complete`);
+  console.log(`[veydrift runner] ${modeTag}cycle complete`);
   process.exit(0);
 }
 
 main().catch((err: unknown) => {
   const msg = err instanceof Error ? err.message : String(err);
-  console.error(`[keel runner] fatal: ${msg}`);
+  console.error(`[veydrift runner] fatal: ${msg}`);
   process.exit(1);
 });

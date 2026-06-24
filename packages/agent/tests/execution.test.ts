@@ -6,7 +6,7 @@ import {
   execute,
 } from "../src/execution/twak.js";
 import type { QuoteRunner, LiveRunner } from "../src/execution/twak.js";
-import type { TradeProposal } from "@keel/shared";
+import type { TradeProposal } from "@veydrift/shared";
 
 // ── parseTwakJson ─────────────────────────────────────────────────────────────
 

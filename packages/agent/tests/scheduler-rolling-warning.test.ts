@@ -5,7 +5,7 @@ import type {
   MarketSnapshot,
   ExecutionPlan,
   ExecutionResult,
-} from "@keel/shared";
+} from "@veydrift/shared";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

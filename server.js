@@ -1,8 +1,8 @@
-console.log("[keel diag] PORTFOLIO_VALUE_USD =", JSON.stringify(process.env.PORTFOLIO_VALUE_USD));
-console.log("[keel diag] KEEL_DATA_DIR =", JSON.stringify(process.env.KEEL_DATA_DIR));
-console.log("[keel diag] I_UNDERSTAND_REAL_FUNDS =", JSON.stringify(process.env.I_UNDERSTAND_REAL_FUNDS));
-console.log("[keel diag] CMC_API_KEY set? =", process.env.CMC_API_KEY ? "yes, length " + process.env.CMC_API_KEY.length : "NOT SET");
-console.log("[keel diag] Total env var count =", Object.keys(process.env).length);
+console.log("[veydrift diag] PORTFOLIO_VALUE_USD =", JSON.stringify(process.env.PORTFOLIO_VALUE_USD));
+console.log("[veydrift diag] KEEL_DATA_DIR =", JSON.stringify(process.env.KEEL_DATA_DIR));
+console.log("[veydrift diag] I_UNDERSTAND_REAL_FUNDS =", JSON.stringify(process.env.I_UNDERSTAND_REAL_FUNDS));
+console.log("[veydrift diag] CMC_API_KEY set? =", process.env.CMC_API_KEY ? "yes, length " + process.env.CMC_API_KEY.length : "NOT SET");
+console.log("[veydrift diag] Total env var count =", Object.keys(process.env).length);
 
 // Railway single-service entrypoint.
 // Starts the Next.js web dashboard and runs the scheduler cycle in-process
@@ -28,8 +28,8 @@ const runOnBoot = process.env["KEEL_RUN_ON_BOOT"] !== "false";
 
 // ── Startup diagnostics (no secrets) ─────────────────────────────────────────
 
-console.log(`[keel server] Starting in ${mode} mode`);
-console.log(`[keel server] Resolved data directory: ${dataDir}`);
+console.log(`[veydrift server] Starting in ${mode} mode`);
+console.log(`[veydrift server] Resolved data directory: ${dataDir}`);
 
 let writable = false;
 try {
@@ -41,7 +41,7 @@ try {
 } catch {
   writable = false;
 }
-console.log(`[keel server] Data directory writable: ${writable}`);
+console.log(`[veydrift server] Data directory writable: ${writable}`);
 
 // ── TWAK keystore reconstruction ─────────────────────────────────────────────
 // Runs synchronously before any child process is spawned.
@@ -54,7 +54,7 @@ console.log(`[keel server] Data directory writable: ${writable}`);
   const credentialsB64 = process.env["TWAK_CREDENTIALS_JSON_B64"];
 
   if (!walletB64 || !credentialsB64) {
-    console.log("[keel server] TWAK keystore env vars not set — skipping reconstruction");
+    console.log("[veydrift server] TWAK keystore env vars not set — skipping reconstruction");
     return;
   }
 
@@ -77,11 +77,11 @@ console.log(`[keel server] Data directory writable: ${writable}`);
     );
     credentialsOk = true;
   } catch (err) {
-    console.error(`[keel server] Keystore reconstruction error: ${err.message}`);
+    console.error(`[veydrift server] Keystore reconstruction error: ${err.message}`);
   }
 
   console.log(
-    `[keel server] Keystore reconstructed: wallet.json=${walletOk} credentials.json=${credentialsOk}`,
+    `[veydrift server] Keystore reconstructed: wallet.json=${walletOk} credentials.json=${credentialsOk}`,
   );
 })();
 
@@ -103,7 +103,7 @@ console.log(`[keel server] Data directory writable: ${writable}`);
       PATTERN.lastIndex = 0; // reset after test()
       const scrubbed = original.replace(PATTERN, REDACTED);
       fs.writeFileSync(filePath, scrubbed, "utf8");
-      console.log(`[keel server] Scrubbed --password leak from ${path.basename(filePath)}`);
+      console.log(`[veydrift server] Scrubbed --password leak from ${path.basename(filePath)}`);
     } catch {
       // File doesn't exist or unreadable — not an error
     }
@@ -113,21 +113,21 @@ console.log(`[keel server] Data directory writable: ${writable}`);
 // ── Cycle runner ──────────────────────────────────────────────────────────────
 
 function runCycle() {
-  console.log(`[keel server] Spawning scheduler cycle · ${new Date().toISOString()}`);
+  console.log(`[veydrift server] Spawning scheduler cycle · ${new Date().toISOString()}`);
   const child = spawn("npm", ["run", "run:cycle"], {
     stdio: "inherit",
     shell: process.platform === "win32",
   });
 
   child.on("error", (err) => {
-    console.error(`[keel server] Cycle spawn error: ${err.message}`);
+    console.error(`[veydrift server] Cycle spawn error: ${err.message}`);
   });
 
   child.on("close", (code) => {
     if (code !== 0) {
-      console.error(`[keel server] Cycle exited with code ${code}`);
+      console.error(`[veydrift server] Cycle exited with code ${code}`);
     } else {
-      console.log(`[keel server] Cycle complete · ${new Date().toISOString()}`);
+      console.log(`[veydrift server] Cycle complete · ${new Date().toISOString()}`);
     }
     // Non-zero exit is intentionally non-fatal — web dashboard stays up.
   });
@@ -141,12 +141,12 @@ const web = spawn("npm", ["run", "start", "--workspace=apps/web"], {
 });
 
 web.on("error", (err) => {
-  console.error(`[keel server] Next.js spawn error: ${err.message}`);
+  console.error(`[veydrift server] Next.js spawn error: ${err.message}`);
   process.exit(1);
 });
 
 web.on("close", (code) => {
-  console.error(`[keel server] Next.js exited with code ${code} — shutting down`);
+  console.error(`[veydrift server] Next.js exited with code ${code} — shutting down`);
   process.exit(code ?? 1);
 });
 
@@ -156,7 +156,7 @@ if (runOnBoot) {
   // Small delay so Next.js can begin starting before the first cycle log appears.
   setTimeout(runCycle, 2000);
 } else {
-  console.log("[keel server] KEEL_RUN_ON_BOOT=false — skipping boot cycle");
+  console.log("[veydrift server] KEEL_RUN_ON_BOOT=false — skipping boot cycle");
 }
 
 setInterval(runCycle, CYCLE_INTERVAL_MS);
@@ -164,7 +164,7 @@ setInterval(runCycle, CYCLE_INTERVAL_MS);
 // ── Graceful shutdown ─────────────────────────────────────────────────────────
 
 function shutdown(signal) {
-  console.log(`[keel server] Received ${signal} — forwarding to Next.js child`);
+  console.log(`[veydrift server] Received ${signal} — forwarding to Next.js child`);
   if (web && !web.killed) {
     web.kill(signal);
   }

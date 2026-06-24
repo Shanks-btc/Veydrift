@@ -1,4 +1,4 @@
-import type { SpotHolding } from "@keel/shared";
+import type { SpotHolding } from "@veydrift/shared";
 import { fmtUsd, fmtNum, fmtPct, pctColor } from "../lib/format";
 import { Card, CardHeader } from "./ui/Card";
 

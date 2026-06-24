@@ -3,7 +3,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import type { AuditEntry } from "@keel/shared";
+import type { AuditEntry } from "@veydrift/shared";
 
 const AUDIT_FILE = "audit.jsonl";
 

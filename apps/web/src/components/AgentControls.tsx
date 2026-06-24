@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { AgentStatus, DrawdownGateResult, RiskMode } from "@keel/shared";
-import { SCORING_COST_PER_SWAP_LEG } from "@keel/shared";
+import type { AgentStatus, DrawdownGateResult, RiskMode } from "@veydrift/shared";
+import { SCORING_COST_PER_SWAP_LEG } from "@veydrift/shared";
 import { Card, CardHeader } from "./ui/Card";
 import { modeColor } from "../lib/format";
 

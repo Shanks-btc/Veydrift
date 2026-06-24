@@ -9,7 +9,7 @@ import {
   Tooltip,
   ReferenceLine,
 } from "recharts";
-import type { DrawdownState } from "@keel/shared";
+import type { DrawdownState } from "@veydrift/shared";
 import { fmtTime } from "../lib/format";
 import { Card, CardHeader } from "./ui/Card";
 

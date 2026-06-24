@@ -3,7 +3,7 @@ import type {
   PortfolioValuePoint,
   DrawdownPoint,
   SwapLogRow,
-} from "@keel/shared";
+} from "@veydrift/shared";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

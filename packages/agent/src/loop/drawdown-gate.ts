@@ -10,7 +10,7 @@
 //       volatile exposure would exceed drawdownOverlayCap.
 //     - Outside both zones: passes.
 
-import type { DrawdownGateResult, PolicyConfig } from "@keel/shared";
+import type { DrawdownGateResult, PolicyConfig } from "@veydrift/shared";
 import { DEFAULT_POLICY } from "../config.js";
 import { isTradeable, isVolatile, isStable } from "../guardrails/index.js";
 

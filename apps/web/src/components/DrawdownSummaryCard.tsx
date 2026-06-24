@@ -1,4 +1,4 @@
-import type { DrawdownState } from "@keel/shared";
+import type { DrawdownState } from "@veydrift/shared";
 import { fmtUsd } from "../lib/format";
 import { Card, CardHeader } from "./ui/Card";
 

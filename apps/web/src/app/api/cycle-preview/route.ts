@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readFileSync } from "fs";
 import { join, resolve } from "path";
-import type { AgentPersistentState, DrawdownGateResult, RiskMode } from "@keel/shared";
+import type { AgentPersistentState, DrawdownGateResult, RiskMode } from "@veydrift/shared";
 
 export const dynamic = "force-dynamic";
 

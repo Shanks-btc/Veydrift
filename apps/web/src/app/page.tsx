@@ -23,7 +23,7 @@ import type {
   ProofEntry,
   X402Confirmation,
   PnL,
-} from "@keel/shared";
+} from "@veydrift/shared";
 import { AppShell } from "../components/AppShell";
 import { TopTradingBar } from "../components/TopTradingBar";
 import { TradingSummaryRow } from "../components/TradingSummaryRow";
@@ -70,7 +70,7 @@ interface PortfolioApiResponse {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const WALLET_ADDRESS = "0x66af72374Eb358cf939bc1954b8F62EfcF08E10a";
+const WALLET_ADDRESS = "";
 const DRAW_LIMIT_PCT  = -12;
 const DRAW_KILL_PCT   = -18;
 
@@ -93,33 +93,7 @@ const ASSET_COLORS: Record<string, string> = {
   BNB:   "#F0B90B",
 };
 
-// Fixed proof trail entries — always real, never fabricated.
-const FIXED_PROOF_ENTRIES: ProofEntry[] = [
-  {
-    id: "pt-identity",
-    type: "AgentIdentity",
-    label: "Agent Identity — Registered",
-    timestamp: "2026-06-01T12:00:00.000Z",
-    txHash:
-      "0x006151e42ceb1b151ddcd7b172b9dd2087cbabbe7fbe3a58c63274c3fa6ac305",
-    explorerUrl:
-      "https://bscscan.com/tx/0x006151e42ceb1b151ddcd7b172b9dd2087cbabbe7fbe3a58c63274c3fa6ac305",
-    verified: true,
-    detail: "0x66af72374Eb358cf939bc1954b8F62EfcF08E10a registered on BSC",
-  },
-  {
-    id: "pt-first-swap",
-    type: "SwapExecution",
-    label: "First qualifying BSC swap",
-    timestamp: "2026-06-19T08:00:00.000Z",
-    txHash:
-      "0x99ef6856cd679a65a7d7877b97bd5a4f525b98b0b61a2589481f2a108e6d9854",
-    explorerUrl:
-      "https://bscscan.com/tx/0x99ef6856cd679a65a7d7877b97bd5a4f525b98b0b61a2589481f2a108e6d9854",
-    verified: true,
-    detail: "minimum-risk qualifying attempt · BSC only · not Base/x402",
-  },
-];
+const FIXED_PROOF_ENTRIES: ProofEntry[] = [];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

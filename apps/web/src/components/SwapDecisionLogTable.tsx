@@ -1,4 +1,4 @@
-import type { SwapLogRow } from "@keel/shared";
+import type { SwapLogRow } from "@veydrift/shared";
 import { fmtUsd, fmtDateTime, shortHash, modeColor, pctColor } from "../lib/format";
 import { Card, CardHeader } from "./ui/Card";
 

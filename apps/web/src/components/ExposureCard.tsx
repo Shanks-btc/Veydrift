@@ -1,4 +1,4 @@
-import type { Exposure, PortfolioFreshness } from "@keel/shared";
+import type { Exposure, PortfolioFreshness } from "@veydrift/shared";
 import { Card, CardHeader } from "./ui/Card";
 
 interface Props {

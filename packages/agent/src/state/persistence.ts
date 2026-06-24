@@ -5,7 +5,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import type { AgentPersistentState, DayAttemptEntry, PortfolioSnapshot } from "@keel/shared";
+import type { AgentPersistentState, DayAttemptEntry, PortfolioSnapshot } from "@veydrift/shared";
 
 export const DEFAULT_DATA_DIR = "./data";
 const STATE_FILE = "agent-state.json";

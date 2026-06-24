@@ -12,7 +12,7 @@ import type {
   OverlayInput,
   AppliedOverlay,
   OverlayResult,
-} from "@keel/shared";
+} from "@veydrift/shared";
 import { DEFAULT_POLICY } from "../config.js";
 
 // ── Emergency mode check ──────────────────────────────────────────────────────

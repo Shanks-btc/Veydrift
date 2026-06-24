@@ -1,4 +1,4 @@
-import type { MarketSignals } from "@keel/shared";
+import type { MarketSignals } from "@veydrift/shared";
 import { fmtUsd, fmtPct, pctColor } from "../lib/format";
 import { Card, CardHeader } from "./ui/Card";
 

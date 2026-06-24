@@ -2,6 +2,8 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "paths": {
+      "@veydrift/shared": ["../shared/src/index.ts"],
+      "@veydrift/shared/*": ["../shared/src/*"],
       "@keel/shared": ["../shared/src/index.ts"],
       "@keel/shared/*": ["../shared/src/*"]
     }

@@ -15,10 +15,10 @@
     "incremental": true,
     "plugins": [{ "name": "next" }],
     "paths": {
-      "@keel/shared": ["../../packages/shared/src/index.ts"],
-      "@keel/shared/*": ["../../packages/shared/src/*"]
+      "@veydrift/shared": ["../../packages/shared/src/index.ts"],
+      "@veydrift/shared/*": ["../../packages/shared/src/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "vitest.config.ts", "tests"]
 }
