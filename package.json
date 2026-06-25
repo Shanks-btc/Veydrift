@@ -11,6 +11,7 @@
     "typecheck": "npm run typecheck --workspace=apps/web",
     "run:cycle": "tsx packages/agent/src/runner.ts",
     "cycle:dry": "tsx packages/agent/src/runner.ts --dry-run",
+    "start": "node server.js",
     "railway:start": "node server.js"
   },
   "dependencies": {
@@ -27,3 +28,4 @@
     "typescript": "^5.6.0"
   }
 }
+
