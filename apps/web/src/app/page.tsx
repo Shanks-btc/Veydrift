@@ -1,52 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type {
-  AgentPersistentState,
-  AuditEntry,
-  RiskMode,
-  SwapLogRow,
-  Swap,
-  PortfolioValue,
-  Exposure,
-  PortfolioSnapshot,
-  PortfolioFreshness,
-  SpotHolding,
-  AllocationSlice,
-  AssetSymbol,
-  AssetRole,
-  MarketSignals,
-  RiskScore,
-  DrawdownState,
-  DrawdownPoint,
-  HealthItem,
-  ProofEntry,
-  X402Confirmation,
-  PnL,
-} from "@veydrift/shared";
-import { AppShell } from "../components/AppShell";
-import { TopTradingBar } from "../components/TopTradingBar";
-import { TradingSummaryRow } from "../components/TradingSummaryRow";
-import { PortfolioValueCard } from "../components/PortfolioValueCard";
-import { PnLCard } from "../components/PnLCard";
-import { ExposureCard } from "../components/ExposureCard";
-import { LatestSwapCard } from "../components/LatestSwapCard";
-import { DrawdownSummaryCard } from "../components/DrawdownSummaryCard";
-import { PortfolioAllocationCard } from "../components/PortfolioAllocationCard";
-import { SpotHoldingsTable } from "../components/SpotHoldingsTable";
-import { MarketSignalsCard } from "../components/MarketSignalsCard";
-import { RiskScoreBreakdownCard } from "../components/RiskScoreBreakdownCard";
-import { DrawdownGuardrailChart } from "../components/DrawdownGuardrailChart";
-import { LatestAutonomousSwapCard } from "../components/LatestAutonomousSwapCard";
-import { ProofTrailCard } from "../components/ProofTrailCard";
-import { X402ConfirmationCard } from "../components/X402ConfirmationCard";
-import { SwapDecisionLogTable } from "../components/SwapDecisionLogTable";
-import { SystemHealthCard } from "../components/SystemHealthCard";
-import { AgentControls } from "../components/AgentControls";
-import { AgentWalletProofCard } from "../components/AgentWalletProofCard";
-import { SchedulerStatusCard } from "../components/SchedulerStatusCard";
-import { pickPnlLabel } from "../lib/pnl";
-import type { PnlBaseline } from "../lib/pnl";
+import Link from "next/link";
+import type { AuditEntry, AgentPersistentState } from "@veydrift/shared";
+import { fmtUsd, fmtDateTime, fmtRelative } from "../lib/format";
+
+// ── API response shapes ───────────────────────────────────────────────────────
 
 interface AgentStateResponse {
   ok: boolean;
@@ -56,549 +15,581 @@ interface AgentStateResponse {
   liveCycles: number;
   dryRunCycles: number;
   recentLiveAudit: AuditEntry[];
-  balanceSummary: { totalUsd: number; volatileUsd: number; stableUsd: number; source: "env" } | null;
+  balanceSummary: { totalUsd: number; volatileUsd: number; stableUsd: number; source: string } | null;
 }
 
-interface PortfolioApiResponse {
+interface CyclePreviewResponse {
   ok: boolean;
-  snapshot: PortfolioSnapshot | null;
-  freshness: PortfolioFreshness;
-  source: string;
-  pnlBaseline: PnlBaseline | null;
-  drawdownHistory: DrawdownPoint[];
+  R: number;
+  mode: string;
+  snapshot: { price: number; change1h: number; change24h: number; fearGreed: number };
+  priceIsSimulation: boolean;
 }
-
-// ── Constants ─────────────────────────────────────────────────────────────────
-
-const WALLET_ADDRESS = "";
-const DRAW_LIMIT_PCT  = -12;
-const DRAW_KILL_PCT   = -18;
-
-const STABLES = new Set(["USDT", "USDC", "USD1", "FDUSD"]);
-
-const ASSET_ROLES: Record<string, AssetRole> = {
-  ETH: "Volatile", CAKE: "Volatile", LINK: "Volatile",
-  USDT: "Stable",  USDC: "Stable",  USD1: "Stable",  FDUSD: "Stable",
-  BNB: "Gas",
-};
-
-const ASSET_COLORS: Record<string, string> = {
-  ETH:   "#627EEA",
-  CAKE:  "#D1884F",
-  LINK:  "#2A5ADA",
-  USDT:  "#26A17B",
-  USDC:  "#2775CA",
-  USD1:  "#1DA462",
-  FDUSD: "#1A5F9E",
-  BNB:   "#F0B90B",
-};
-
-const FIXED_PROOF_ENTRIES: ProofEntry[] = [];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function auditToSwapRow(entry: AuditEntry, index: number): SwapLogRow {
-  const proposal = entry.proposal;
-
-  let action: "Buy" | "Sell" | "Hold" | "Rebalance";
-  if (entry.action === "BLOCKED" || entry.action === "SKIPPED") {
-    action = "Hold";
-  } else if (entry.action === "KILL_SWITCH") {
-    action = "Sell";
-  } else if (entry.action === "FALLBACK_EXECUTED") {
-    action = "Rebalance";
-  } else if (proposal) {
-    const fromStable = STABLES.has(proposal.fromAsset);
-    const toStable   = STABLES.has(proposal.toAsset);
-    action = fromStable && !toStable ? "Buy" : !fromStable && toStable ? "Sell" : "Rebalance";
-  } else {
-    action = "Hold";
-  }
-
-  return {
-    id: `audit-${index}`,
-    timestamp: entry.cycleId,
-    mode: entry.mode as RiskMode,
-    action,
-    fromAsset: proposal?.fromAsset ?? "ETH",
-    toAsset:   proposal?.toAsset   ?? "ETH",
-    sizeIn:    proposal?.amountIn  ?? 0,
-    valueUsd:  proposal?.estimatedValueUsd ?? 0,
-    reason:    proposal?.reason ?? entry.blockedReason ?? "—",
-    txHash:    entry.txHash ?? null,
-    explorerUrl: entry.txHash ? `https://bscscan.com/tx/${entry.txHash}` : null,
-  };
+function modeColor(mode: string): string {
+  if (mode === "Risk-on") return "var(--green)";
+  if (mode === "Risk-off") return "var(--red)";
+  return "var(--amber)";
 }
 
-// Returns a Swap only for EXECUTED/FALLBACK_EXECUTED entries with a real BSC txHash.
-// BLOCKED, SKIPPED, approval-only attempts, and entries without a txHash return null.
-function auditToSwap(entry: AuditEntry): Swap | null {
-  if (!entry.txHash || !entry.proposal) return null;
-  const p = entry.proposal;
-  return {
-    id: entry.cycleId,
-    timestamp: entry.cycleId,
-    fromAsset: p.fromAsset,
-    toAsset: p.toAsset,
-    amountIn: p.amountIn,
-    amountOut: entry.amountOut ?? 0,
-    valueUsd: p.estimatedValueUsd,
-    priceImpactPct: entry.priceImpactPct ?? 0,
-    slippagePct: entry.slippagePct ?? 0,
-    reason: p.reason,
-    txHash: entry.txHash,
-    explorerUrl: `https://bscscan.com/tx/${entry.txHash}`,
-  };
+function actionColor(action: string): string {
+  if (action === "EXECUTED" || action === "FALLBACK_EXECUTED") return "var(--green)";
+  if (action === "BLOCKED" || action === "KILL_SWITCH") return "var(--red)";
+  return "var(--amber)";
 }
 
-function getTodayKey(): string {
-  return new Date().toISOString().slice(0, 10);
+function actionLabel(action: string): string {
+  if (action === "FALLBACK_EXECUTED") return "EXECUTED";
+  return action;
 }
 
-function fgLabel(fg: number): string {
-  if (fg <= 25) return "Extreme Fear";
-  if (fg <= 45) return "Fear";
-  if (fg <= 55) return "Neutral";
-  if (fg <= 75) return "Greed";
-  return "Extreme Greed";
-}
+// ── Sub-components ────────────────────────────────────────────────────────────
 
-function buildHealthItems(
-  agentData: AgentStateResponse | null,
-  portfolioData: PortfolioApiResponse | null,
-): HealthItem[] {
-  const items: HealthItem[] = [];
-
-  if (agentData?.lastAuditEntry) {
-    const ageMins = Math.round(
-      (Date.now() - new Date(agentData.lastAuditEntry.cycleId).getTime()) / 60_000,
-    );
-    items.push({ label: "Market Data (CMC)", status: "ok", detail: `Last cycle ${ageMins}m ago` });
-  } else {
-    items.push({ label: "Market Data (CMC)", status: "not_yet_verified", detail: "No live cycles yet" });
-  }
-
-  const liveCount = agentData?.liveCycles ?? 0;
-  items.push({
-    label: "Execution Engine (TWAK)",
-    status: liveCount > 0 ? "ok" : "not_yet_verified",
-    detail:
-      liveCount > 0
-        ? `${liveCount} live trade${liveCount === 1 ? "" : "s"}`
-        : "No live trades yet",
-  });
-
-  const freshness = portfolioData?.freshness ?? "UNAVAILABLE";
-  items.push({
-    label: "Network (BSC)",
-    status: freshness !== "UNAVAILABLE" ? "ok" : "not_yet_verified",
-    detail:
-      freshness !== "UNAVAILABLE"
-        ? `chainId 56 · ${freshness}`
-        : "chainId 56 · not yet verified",
-  });
-
-  const src = portfolioData?.source ?? null;
-  items.push({
-    label: "Wallet",
-    status: src === "twak" || src === "twak-cache" || src === "snapshot" ? "ok" : "not_yet_verified",
-    detail:
-      src === "twak" || src === "twak-cache"
-        ? "Balance confirmed on-chain"
-        : src === "snapshot"
-        ? "Runner snapshot available"
-        : src === "env"
-        ? "Env vars only"
-        : "Balance not yet verified",
-  });
-
-  items.push({ label: "x402 Service", status: "not_yet_verified", detail: "Not yet exercised" });
-
-  return items;
-}
-
-// ── LiveStateBanner ───────────────────────────────────────────────────────────
-
-function LiveStateBanner({
-  hasLiveAudit,
-  portfolioSource,
+function StatCard({
+  label,
+  value,
+  sub,
+  color,
+  delay,
 }: {
-  hasLiveAudit: boolean;
-  portfolioSource: string | null;
+  label: string;
+  value: string;
+  sub?: string;
+  color?: string;
+  delay: string;
 }) {
-  const hasRealPortfolio =
-    portfolioSource === "twak" ||
-    portfolioSource === "twak-cache" ||
-    portfolioSource === "snapshot";
-
-  if (hasRealPortfolio && hasLiveAudit) return null;
-
   return (
     <div
-      className="span-4"
-      style={{
-        fontSize: "11px",
-        color: "var(--amber)",
-        background: "var(--amber)08",
-        border: "1px solid var(--amber)25",
-        borderRadius: "6px",
-        padding: "8px 14px",
-        lineHeight: "1.5",
-      }}
+      className="vd-card fade-in"
+      style={{ animationDelay: delay }}
     >
-      <strong>LIVE STATE PENDING</strong> — No completed live runner cycle has persisted portfolio
-      or trade data yet. Real portfolio, holdings, drawdown, and audit entries will appear after
-      the first successful non-dry-run cycle.
+      <div className="vd-label">{label}</div>
+      <div
+        className="font-mono"
+        style={{
+          fontSize: "22px",
+          fontWeight: 700,
+          color: color ?? "var(--text-primary)",
+          lineHeight: 1.2,
+          marginBottom: sub ? "4px" : 0,
+        }}
+      >
+        {value}
+      </div>
+      {sub && (
+        <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>{sub}</div>
+      )}
     </div>
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+function FeatureCard({
+  icon,
+  title,
+  body,
+  delay,
+}: {
+  icon: string;
+  title: string;
+  body: string;
+  delay: string;
+}) {
+  return (
+    <div
+      className="vd-card slide-in"
+      style={{ animationDelay: delay, display: "flex", flexDirection: "column", gap: "12px" }}
+    >
+      <div style={{ fontSize: "28px", lineHeight: 1 }}>{icon}</div>
+      <div style={{ fontSize: "15px", fontWeight: 600, color: "var(--text-primary)" }}>{title}</div>
+      <div style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: "1.6" }}>{body}</div>
+    </div>
+  );
+}
 
-export default function DashboardPage() {
-  const [paused, setPaused] = useState(false);
+// ── Main page ─────────────────────────────────────────────────────────────────
+
+export default function LandingPage() {
   const [agentData, setAgentData] = useState<AgentStateResponse | null>(null);
-  const [portfolioData, setPortfolioData] = useState<PortfolioApiResponse | null>(null);
-  const [loadingState, setLoadingState] = useState(true);
-  const todayKey = getTodayKey();
+  const [previewData, setPreviewData] = useState<CyclePreviewResponse | null>(null);
 
-  const fetchAll = useCallback(async () => {
-    setLoadingState(true);
+  const fetchData = useCallback(async () => {
     try {
-      const [stateRes, portfolioRes] = await Promise.all([
+      const [stateRes, previewRes] = await Promise.all([
         fetch("/api/agent-state"),
-        fetch("/api/portfolio"),
+        fetch("/api/cycle-preview"),
       ]);
       if (stateRes.ok) setAgentData((await stateRes.json()) as AgentStateResponse);
-      if (portfolioRes.ok) setPortfolioData((await portfolioRes.json()) as PortfolioApiResponse);
+      if (previewRes.ok) setPreviewData((await previewRes.json()) as CyclePreviewResponse);
     } catch {
-      // API unavailable — keep previous data
-    } finally {
-      setLoadingState(false);
+      // keep previous data on network failure
     }
   }, []);
 
   useEffect(() => {
-    void fetchAll();
-  }, [fetchAll]);
+    void fetchData();
+  }, [fetchData]);
 
-  // ── Portfolio snapshot ───────────────────────────────────────────────────────
-  const snapshot = portfolioData?.snapshot ?? null;
-  const freshness = portfolioData?.freshness ?? "UNAVAILABLE";
-  const portfolioSource = portfolioData?.source ?? null;
-  const isSimulation = portfolioSource === "env";
+  const last = agentData?.lastAuditEntry ?? null;
+  const totalValue = agentData?.balanceSummary?.totalUsd ?? null;
+  const liveCycles = agentData?.liveCycles ?? 0;
+  const R = previewData?.R ?? null;
+  const mode = previewData?.mode ?? last?.mode ?? null;
 
-  // ── Portfolio value ──────────────────────────────────────────────────────────
-  const portfolioValueData: PortfolioValue | null = snapshot
-    ? {
-        currentUsd: snapshot.portfolioUsd,
-        change24hUsd: 0,
-        change24hPct: 0,
-        series: [],
-      }
-    : null;
+  // Active since: first entry in day ledger
+  const dayLedger = agentData?.state?.dayLedger ?? {};
+  const firstDate = Object.keys(dayLedger).sort()[0] ?? null;
 
-  // ── Exposure ─────────────────────────────────────────────────────────────────
-  const exposureData: Exposure | null = snapshot
-    ? {
-        volatilePct: snapshot.allocation.volatilePct,
-        stablePct: snapshot.allocation.stablePct,
-        gasPct: snapshot.allocation.gasPct,
-      }
-    : null;
-
-  // ── Latest confirmed BSC swap (EXECUTED or FALLBACK_EXECUTED with real txHash) ─
-  // Searches recentLiveAudit in reverse so BLOCKED/SKIPPED entries never populate the card.
-  // Both LatestSwapCard and LatestAutonomousSwapCard use this same source.
-  const latestExecutedEntry = agentData?.recentLiveAudit
-    ? [...agentData.recentLiveAudit]
-        .reverse()
-        .find(
-          (e) =>
-            (e.action === "EXECUTED" || e.action === "FALLBACK_EXECUTED") && !!e.txHash,
-        )
-    : null;
-  const latestSwapData: Swap | null = latestExecutedEntry
-    ? auditToSwap(latestExecutedEntry)
-    : null;
-
-  // ── Swap log (real audit entries only — empty when no live cycles) ────────────
-  const liveSwapLog: SwapLogRow[] = agentData
-    ? agentData.recentLiveAudit.map(auditToSwapRow)
-    : [];
-
-  // ── Spot holdings (from token balances — no 24h change available) ─────────────
-  const tokenBalancesEmpty =
-    snapshot !== null && Object.keys(snapshot.tokenBalances).length === 0;
-  const holdingsData: SpotHolding[] = snapshot
-    ? Object.entries(snapshot.tokenBalances)
-        .filter((entry): entry is [string, { balance: number; valueUsd: number; change24hPct?: number | null }] =>
-          entry[1] !== undefined,
-        )
-        .map(([asset, d]) => ({
-          asset: asset as AssetSymbol,
-          role: (ASSET_ROLES[asset] ?? "Volatile") as AssetRole,
-          balance: d.balance,
-          valueUsd: d.valueUsd,
-          allocationPct:
-            snapshot.portfolioUsd > 0 ? (d.valueUsd / snapshot.portfolioUsd) * 100 : 0,
-          change24hPct: d.change24hPct ?? null,
-        }))
-        .sort((a, b) => b.valueUsd - a.valueUsd)
-    : [];
-
-  // Distinct partial message when snapshot exists but tokenBalances is empty
-  const holdingsEmptyMessage =
-    tokenBalancesEmpty && snapshot && snapshot.portfolioUsd > 0
-      ? "Partial snapshot — total value available; holdings unavailable"
-      : undefined;
-
-  // ── Allocation slices ─────────────────────────────────────────────────────────
-  // Priority 1: per-token breakdown from tokenBalances (most specific)
-  // Priority 2: role-bucket fallback from snapshot.allocation (when tokenBalances is empty)
-  // The Exposure card and Portfolio Value card read from the same snapshot source.
-  const allocationData: AllocationSlice[] | null = (() => {
-    if (!snapshot) return null;
-
-    // Per-token breakdown (most specific — shows individual assets)
-    const tokenEntries = Object.entries(snapshot.tokenBalances).filter(
-      (entry): entry is [string, { balance: number; valueUsd: number }] =>
-        entry[1] !== undefined && entry[1].valueUsd > 0,
-    );
-    if (tokenEntries.length > 0 && snapshot.portfolioUsd > 0) {
-      return tokenEntries
-        .map(([asset, d]) => ({
-          asset: asset as AssetSymbol,
-          role: (ASSET_ROLES[asset] ?? "Volatile") as AssetRole,
-          pct: (d.valueUsd / snapshot.portfolioUsd) * 100,
-          valueUsd: d.valueUsd,
-          color: ASSET_COLORS[asset] ?? "#888",
-        }))
-        .sort((a, b) => b.pct - a.pct);
-    }
-
-    // Role-bucket fallback: same source as Exposure card (snapshot.allocation)
-    // Uses representative symbols for coloring; legend shows role-bucket breakdown.
-    const { volatilePct, stablePct, gasPct } = snapshot.allocation;
-    const total = snapshot.portfolioUsd;
-    const roleBuckets: AllocationSlice[] = [];
-    if (volatilePct > 0)
-      roleBuckets.push({ asset: "ETH",  role: "Volatile", pct: volatilePct, valueUsd: (volatilePct / 100) * total, color: ASSET_COLORS.ETH });
-    if (stablePct > 0)
-      roleBuckets.push({ asset: "USDT", role: "Stable",   pct: stablePct,   valueUsd: (stablePct   / 100) * total, color: ASSET_COLORS.USDT });
-    if (gasPct > 0)
-      roleBuckets.push({ asset: "BNB",  role: "Gas",      pct: gasPct,      valueUsd: (gasPct      / 100) * total, color: ASSET_COLORS.BNB });
-
-    return roleBuckets.length > 0 ? roleBuckets.sort((a, b) => b.pct - a.pct) : null;
-  })();
-
-  // True when a snapshot exists but we couldn't produce any allocation slices
-  const allocationSnapshotAvailable = snapshot !== null && allocationData === null;
-
-  // ── Market signals (derived from last audit cycle) ────────────────────────────
-  const marketSignalsData: MarketSignals | null = agentData?.lastAuditEntry
-    ? (() => {
-        const entry = agentData.lastAuditEntry!;
-        const c = entry.riskScore.components;
-        const fg = c[2]?.value ?? 50;
-        return {
-          fearGreed: fg,
-          fearGreedLabel: fgLabel(fg),
-          change1hPct: c[0]?.value ?? 0,
-          change24hPct: c[1]?.value ?? 0,
-          trend:
-            entry.mode === "Risk-on"
-              ? ("Bullish" as const)
-              : entry.mode === "Risk-off"
-              ? ("Bearish" as const)
-              : ("Neutral" as const),
-          assetPrice: entry.assetPriceUsd ?? 0,
-          assetSymbol: "ETH" as const,
-        };
-      })()
-    : null;
-
-  // ── Risk score ────────────────────────────────────────────────────────────────
-  const riskScoreData: RiskScore | null =
-    agentData?.lastAuditEntry?.riskScore ?? null;
-
-  // ── Drawdown (HWM from persistent state > snapshot; series from history) ────────
-  // If the live portfolio value (from TWAK) exceeds the persisted HWM, use it as
-  // the effective HWM. This prevents the dashboard showing a stale low HWM from
-  // agent-state.json when the real balance is higher. We never write back to
-  // agent-state.json from the web layer — the runner owns that file.
-  const persistedHwm =
-    agentData?.state?.highWaterMarkUsd && agentData.state.highWaterMarkUsd > 0
-      ? agentData.state.highWaterMarkUsd
-      : snapshot?.hwm && snapshot.hwm > 0
-      ? snapshot.hwm
-      : 0;
-  const isLiveSource = portfolioSource === "twak" || portfolioSource === "twak-cache";
-  const livePortfolioUsd = snapshot?.portfolioUsd ?? 0;
-  const hwm = isLiveSource && livePortfolioUsd > persistedHwm ? livePortfolioUsd : persistedHwm;
-
-  const drawdownSeries: DrawdownPoint[] = portfolioData?.drawdownHistory ?? [];
-
-  const drawdownData: DrawdownState | null =
-    snapshot !== null || hwm > 0
-      ? {
-          currentPct: snapshot?.currentDrawdownPct ?? 0,
-          limitPct: DRAW_LIMIT_PCT,
-          killSwitchPct: DRAW_KILL_PCT,
-          highWaterMarkUsd: hwm,
-          series: drawdownSeries,
-        }
-      : null;
-
-  // ── PnL (baseline from first real snapshot — write-once) ──────────────────────
-  // Baseline is only set from real (non-env) TWAK snapshots.
-  // Label: "24h PnL" only when snapshots are ~24h apart; otherwise honest window label.
-  const pnlBaseline = portfolioData?.pnlBaseline ?? null;
-  const pnlData: PnL | null =
-    pnlBaseline && snapshot && snapshot.portfolioUsd > 0
-      ? (() => {
-          const changeUsd = snapshot.portfolioUsd - pnlBaseline.firstSnapshotUsd;
-          const changePct =
-            pnlBaseline.firstSnapshotUsd > 0
-              ? (changeUsd / pnlBaseline.firstSnapshotUsd) * 100
-              : 0;
-          return {
-            totalUsd: changeUsd,
-            change24hPct: changePct,
-            realizedUsd: 0,         // per-trade realized PnL not tracked separately
-            unrealizedUsd: changeUsd,
-          };
-        })()
-      : null;
-  const pnlChangeLabel = pnlBaseline && snapshot
-    ? pickPnlLabel(pnlBaseline.firstSnapshotAt, snapshot.snapshotAt)
-    : "24h";
-
-  // ── Proof trail (fixed real entries only) ─────────────────────────────────────
-  const proofTrailData: ProofEntry[] = FIXED_PROOF_ENTRIES;
-
-  // ── System health ─────────────────────────────────────────────────────────────
-  const systemHealthData: HealthItem[] = buildHealthItems(agentData, portfolioData);
-
-  // ── x402 ──────────────────────────────────────────────────────────────────────
-  const x402Data: X402Confirmation = {
-    totalConfirmed: 0,
-    lastConfirmedAt: null,
-    lastAmountUsdc: null,
-    settlementChain: "Base",
-  };
-
-  // ── Agent status ──────────────────────────────────────────────────────────────
-  const agentStatus = paused ? ("Paused" as const) : ("Running" as const);
-  const agentMode: RiskMode = agentData?.lastAuditEntry?.mode ?? "Neutral";
-  const lastUpdated = agentData?.state?.lastUpdated ?? "";
-  const riskOffActive = agentData?.state?.riskOffOverride?.active === true;
-  const hasLiveAudit = (agentData?.liveCycles ?? 0) > 0;
-  const lastQualifyingTxHash = agentData?.lastAuditEntry?.txHash ?? null;
+  const sec = { padding: "48px var(--page-padding)", maxWidth: "1200px", margin: "0 auto" };
 
   return (
-    <AppShell>
-      {/* 1 — Top trading bar */}
-      <TopTradingBar
-        status={agentStatus}
-        mode={agentMode}
-        walletAddress={WALLET_ADDRESS}
-        lastUpdated={lastUpdated}
-        paused={paused}
-        onPause={() => setPaused(true)}
-        onResume={() => setPaused(false)}
-        onRefresh={() => void fetchAll()}
-      />
+    <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
 
-      {/* 2 — Trading summary row */}
-      <TradingSummaryRow
-        portfolioUsd={snapshot?.portfolioUsd ?? null}
-        portfolioSource={portfolioSource}
-        exposureData={exposureData}
-        latestSwap={latestSwapData}
-        drawdownPct={snapshot?.currentDrawdownPct ?? null}
-        limitPct={DRAW_LIMIT_PCT}
-        killSwitchPct={DRAW_KILL_PCT}
-        pnlData={pnlData}
-        pnlChangeLabel={pnlChangeLabel}
-      />
+      {/* ── SECTION 1: Hero ───────────────────────────────────────────── */}
+      <section
+        style={{
+          background: "linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%)",
+          borderBottom: "1px solid var(--border)",
+          padding: "72px var(--page-padding) 64px",
+          textAlign: "center",
+        }}
+      >
+        <div style={{ maxWidth: "700px", margin: "0 auto" }}>
+          <div
+            className="fade-in"
+            style={{
+              fontSize: "11px",
+              fontWeight: 600,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "var(--green)",
+              marginBottom: "20px",
+            }}
+          >
+            Veydrift · Autonomous Spot Agent · Bitget
+          </div>
+          <h1
+            className="fade-in-1"
+            style={{
+              fontSize: "clamp(28px, 5vw, 42px)",
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+              lineHeight: 1.1,
+              color: "var(--text-primary)",
+              marginBottom: "20px",
+            }}
+          >
+            Deterministic.{" "}
+            <span style={{ color: "var(--green)" }}>Transparent.</span>{" "}
+            Autonomous.
+          </h1>
+          <p
+            className="fade-in-2"
+            style={{
+              fontSize: "16px",
+              color: "var(--text-secondary)",
+              lineHeight: "1.65",
+              marginBottom: "36px",
+            }}
+          >
+            Veydrift reads live Bitget market signals, computes a transparent
+            3-component risk score, and rotates a spot portfolio — no LLM in
+            the trading decision.
+          </p>
+          <div
+            className="fade-in-3"
+            style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}
+          >
+            <Link href="/console" className="btn-primary">View Live Console →</Link>
+            <Link href="/journal#architecture" className="btn-secondary">Read the Architecture →</Link>
+          </div>
+        </div>
+      </section>
 
-      {/* 3 — Main trading grid */}
-      <div className="dashboard-grid">
-        {/* Live state pending notice */}
-        <LiveStateBanner hasLiveAudit={hasLiveAudit} portfolioSource={portfolioSource} />
-
-        {/* Row A: Portfolio Value (2-wide), PnL, Exposure */}
-        <div className="span-2">
-          <PortfolioValueCard
-            data={portfolioValueData}
-            freshness={freshness}
-            isSimulation={isSimulation}
+      {/* ── SECTION 2: Live Stats Bar ─────────────────────────────────── */}
+      <section style={{ ...sec, paddingTop: "40px", paddingBottom: "40px" }}>
+        <div className="vd-label" style={{ marginBottom: "12px" }}>Live Stats</div>
+        <div className="stat-grid">
+          <StatCard
+            label="Portfolio Value"
+            value={totalValue !== null ? fmtUsd(totalValue) : "—"}
+            sub={totalValue !== null ? "From Bitget API" : "Awaiting first cycle"}
+            delay="0s"
+          />
+          <StatCard
+            label="Today's Mode"
+            value={mode ?? "—"}
+            sub={mode ? "Based on risk score" : "No cycle data yet"}
+            color={mode ? modeColor(mode) : undefined}
+            delay="0.05s"
+          />
+          <StatCard
+            label="Live Cycles"
+            value={liveCycles > 0 ? String(liveCycles) : "—"}
+            sub={firstDate ? `Since ${firstDate}` : "Awaiting first cycle"}
+            delay="0.1s"
+          />
+          <StatCard
+            label="Risk Score R"
+            value={R !== null ? R.toFixed(3) : "—"}
+            sub={R !== null ? `${previewData?.priceIsSimulation ? "Simulated" : "Live"} signals` : "No data yet"}
+            color={
+              R !== null
+                ? R < 0.33
+                  ? "var(--green)"
+                  : R < 0.66
+                  ? "var(--amber)"
+                  : "var(--red)"
+                : undefined
+            }
+            delay="0.15s"
           />
         </div>
-        <PnLCard data={pnlData} changeLabel={pnlChangeLabel} />
-        <ExposureCard
-          data={exposureData}
-          freshness={freshness}
-          isSimulation={isSimulation}
-        />
+      </section>
 
-        {/* Row B: Latest Swap (2-wide), Drawdown Summary, Market Signals */}
-        <div className="span-2">
-          <LatestSwapCard data={latestSwapData} />
+      {/* ── SECTION 3: Why Veydrift is different ─────────────────────── */}
+      <section
+        style={{
+          ...sec,
+          paddingTop: "40px",
+          paddingBottom: "40px",
+          borderTop: "1px solid var(--border)",
+          borderBottom: "1px solid var(--border)",
+          background: "var(--surface)",
+        }}
+      >
+        <div className="vd-label" style={{ marginBottom: "20px" }}>
+          Why Veydrift is different
         </div>
-        <DrawdownSummaryCard data={drawdownData} />
-        <MarketSignalsCard data={marketSignalsData} />
-
-        {/* Row C: Allocation donut, Spot Holdings (2-wide), Risk Score */}
-        <PortfolioAllocationCard
-          data={allocationData}
-          snapshotAvailable={allocationSnapshotAvailable}
-        />
-        <div className="span-2">
-          <SpotHoldingsTable data={holdingsData} emptyMessage={holdingsEmptyMessage} />
-        </div>
-        <RiskScoreBreakdownCard data={riskScoreData} />
-
-        {/* Row D: Drawdown chart (2-wide), Latest Autonomous Swap (2-wide) */}
-        <div className="span-2">
-          <DrawdownGuardrailChart data={drawdownData} />
-        </div>
-        <div className="span-2">
-          <LatestAutonomousSwapCard data={latestSwapData} />
-        </div>
-
-        {/* Row E: Proof Trail (2-wide), x402 Confirmation, System Health */}
-        <div className="span-2">
-          <ProofTrailCard data={proofTrailData} />
-        </div>
-        <X402ConfirmationCard data={x402Data} />
-        <SystemHealthCard data={systemHealthData} />
-
-        {/* Row F: Agent Wallet Proof (2-wide) + Scheduler Status (2-wide) */}
-        <div className="span-2">
-          <AgentWalletProofCard lastQualifyingTxHash={lastQualifyingTxHash} />
-        </div>
-        <div className="span-2">
-          <SchedulerStatusCard
-            state={agentData?.state ?? null}
-            todayKey={todayKey}
-            isLoading={loadingState}
+        <div className="feature-grid">
+          <FeatureCard
+            icon="⚙"
+            title="Deterministic Risk Engine"
+            body="Every decision is computed from 3 market signals using a transparent formula. Same inputs always produce the same output. No black box, no hallucination risk."
+            delay="0s"
+          />
+          <FeatureCard
+            icon="📡"
+            title="Bitget Skill Hub Signals"
+            body="5 analyst-grade skills feed real-time sentiment, technicals, macro events, and market intelligence directly into the risk engine via the Bitget MCP integration."
+            delay="0.1s"
+          />
+          <FeatureCard
+            icon="🛡"
+            title="Every Decision Logged"
+            body="The full audit trail — signals received, risk score computed, gates checked, action taken — is persisted and queryable on the Trade Journal page."
+            delay="0.2s"
           />
         </div>
-      </div>
+      </section>
 
-      {/* 4 — Bottom: Swap / Decision Log + Risk-Gated Agent Controls */}
-      <div className="dashboard-bottom">
-        <SwapDecisionLogTable data={liveSwapLog} />
-        <AgentControls
-          status={agentStatus}
-          riskOffActive={riskOffActive}
-          onPause={() => setPaused(true)}
-          onResume={() => setPaused(false)}
-          onRefresh={() => void fetchAll()}
-        />
-      </div>
-    </AppShell>
+      {/* ── SECTION 4: Risk Engine Formula ───────────────────────────── */}
+      <section style={{ ...sec, paddingTop: "48px", paddingBottom: "48px" }}>
+        <div className="vd-label" style={{ marginBottom: "20px" }}>The Formula</div>
+        <div
+          className="vd-card fade-in"
+          style={{ marginBottom: "20px", background: "var(--card-elevated)" }}
+        >
+          <pre
+            className="font-mono"
+            style={{
+              fontSize: "14px",
+              color: "var(--green)",
+              lineHeight: "1.8",
+              margin: 0,
+              overflowX: "auto",
+            }}
+          >
+{`R = clamp(
+  min(1, |Δ1h|  /  3) × 0.4    // 1h price change contribution
++ min(1, |Δ24h| / 10) × 0.4    // 24h price change contribution
++ max(0, (Sentiment − 60) / 40) × 0.2  // Fear & Greed contribution
+)`}
+          </pre>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: "var(--grid-gap)",
+          }}
+        >
+          {[
+            { mode: "Risk-on",  threshold: "R < 0.33", target: "50% volatile",  bg: "var(--green)", text: "#000" },
+            { mode: "Neutral",  threshold: "R < 0.66", target: "35% volatile",  bg: "var(--amber)", text: "#000" },
+            { mode: "Risk-off", threshold: "R ≥ 0.66", target: "18% volatile",  bg: "var(--red)",   text: "#fff" },
+          ].map((m) => (
+            <div
+              key={m.mode}
+              style={{
+                background: m.bg + "18",
+                border: `1px solid ${m.bg}44`,
+                borderRadius: "8px",
+                padding: "16px",
+                textAlign: "center",
+              }}
+            >
+              <div style={{ fontSize: "14px", fontWeight: 700, color: m.bg, marginBottom: "4px" }}>
+                {m.mode}
+              </div>
+              <div className="font-mono" style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "4px" }}>
+                {m.threshold}
+              </div>
+              <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-secondary)" }}>
+                {m.target}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <p style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "16px", lineHeight: "1.6" }}>
+          No oracle. No LLM. Fully reproducible from the same three inputs every time.
+        </p>
+      </section>
+
+      {/* ── SECTION 5: Latest Decision ────────────────────────────────── */}
+      <section
+        style={{
+          ...sec,
+          paddingTop: "40px",
+          paddingBottom: "40px",
+          borderTop: "1px solid var(--border)",
+          background: "var(--surface)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "16px",
+            flexWrap: "wrap",
+            gap: "8px",
+          }}
+        >
+          <div className="vd-label">Latest Decision</div>
+          <Link
+            href="/journal"
+            style={{ fontSize: "12px", color: "var(--green)", textDecoration: "none" }}
+          >
+            View all decisions →
+          </Link>
+        </div>
+
+        {last ? (
+          <div className="vd-card fade-in">
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                gap: "16px",
+              }}
+            >
+              <div>
+                <div className="vd-label">Timestamp</div>
+                <div style={{ fontSize: "13px", color: "var(--text-primary)" }}>
+                  {fmtDateTime(last.cycleId)}
+                </div>
+                <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                  {fmtRelative(last.cycleId)}
+                </div>
+              </div>
+              <div>
+                <div className="vd-label">Mode</div>
+                <span
+                  className="mode-pill"
+                  style={{
+                    background: modeColor(last.mode) + "22",
+                    color: modeColor(last.mode),
+                    border: `1px solid ${modeColor(last.mode)}44`,
+                  }}
+                >
+                  {last.mode}
+                </span>
+              </div>
+              <div>
+                <div className="vd-label">Action</div>
+                <span
+                  className="action-badge"
+                  style={{
+                    background: actionColor(last.action) + "22",
+                    color: actionColor(last.action),
+                    border: `1px solid ${actionColor(last.action)}44`,
+                  }}
+                >
+                  {actionLabel(last.action)}
+                </span>
+              </div>
+              <div>
+                <div className="vd-label">Risk Score</div>
+                <span
+                  className="font-mono"
+                  style={{
+                    fontSize: "16px",
+                    fontWeight: 700,
+                    color: modeColor(last.mode),
+                  }}
+                >
+                  {last.riskScore?.R?.toFixed(3) ?? "—"}
+                </span>
+              </div>
+              {last.proposal?.reason && (
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <div className="vd-label">Reason</div>
+                  <div style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+                    {last.proposal.reason}
+                  </div>
+                </div>
+              )}
+              {last.blockedReason && (
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <div className="vd-label">Blocked Reason</div>
+                  <div style={{ fontSize: "13px", color: "var(--text-muted)", lineHeight: "1.5" }}>
+                    {last.blockedReason}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div
+            className="vd-card"
+            style={{ textAlign: "center", padding: "40px", color: "var(--text-muted)" }}
+          >
+            <div style={{ fontSize: "28px", marginBottom: "12px" }}>◷</div>
+            <div style={{ fontSize: "14px", fontWeight: 600 }}>Awaiting first cycle</div>
+            <div style={{ fontSize: "12px", marginTop: "8px" }}>
+              Decisions will appear here after the agent completes its first qualifier cycle.
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ── SECTION 6: Architecture Overview ─────────────────────────── */}
+      <section style={{ ...sec, paddingTop: "48px", paddingBottom: "64px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "20px",
+            flexWrap: "wrap",
+            gap: "8px",
+          }}
+        >
+          <div className="vd-label">Architecture Overview</div>
+          <Link
+            href="/journal#architecture"
+            style={{ fontSize: "12px", color: "var(--green)", textDecoration: "none" }}
+          >
+            Full architecture →
+          </Link>
+        </div>
+
+        <div
+          className="vd-card fade-in"
+          style={{ background: "var(--card-elevated)", overflow: "hidden" }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "stretch",
+              flexWrap: "wrap",
+              gap: 0,
+            }}
+          >
+            {[
+              {
+                step: "01",
+                title: "Bitget Skill Hub",
+                items: ["technical-analysis", "sentiment-analyst", "macro-analyst", "market-intel", "news-briefing"],
+                color: "var(--blue)",
+              },
+              {
+                step: "02",
+                title: "Risk Engine",
+                items: ["Compute R score", "Pick mode", "Apply overlays", "Check guardrails"],
+                color: "var(--amber)",
+              },
+              {
+                step: "03",
+                title: "Bitget MCP",
+                items: ["spot_place_order", "get_account_assets", "BTCUSDT · ETHUSDT", "Bitget v2 REST"],
+                color: "var(--green)",
+              },
+            ].map((s, i) => (
+              <div
+                key={s.step}
+                style={{
+                  flex: "1",
+                  minWidth: "180px",
+                  padding: "20px",
+                  borderRight: i < 2 ? "1px solid var(--border)" : "none",
+                  position: "relative",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    letterSpacing: "0.1em",
+                    color: s.color,
+                    marginBottom: "8px",
+                  }}
+                >
+                  STEP {s.step}
+                </div>
+                <div
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    color: "var(--text-primary)",
+                    marginBottom: "12px",
+                  }}
+                >
+                  {s.title}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  {s.items.map((item) => (
+                    <div
+                      key={item}
+                      style={{
+                        fontSize: "12px",
+                        color: "var(--text-muted)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <span style={{ color: s.color, fontSize: "8px" }}>●</span>
+                      {item}
+                    </div>
+                  ))}
+                </div>
+                {i < 2 && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      right: "-12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      fontSize: "18px",
+                      color: "var(--text-muted)",
+                      zIndex: 1,
+                      background: "var(--card-elevated)",
+                      lineHeight: 1,
+                    }}
+                  >
+                    →
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }

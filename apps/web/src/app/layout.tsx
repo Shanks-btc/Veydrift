@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import Nav from "../components/Nav";
 
 export const metadata: Metadata = {
-  title: "Keel — Autonomous Spot Trading Agent",
+  title: "Veydrift — Autonomous Spot Trading Agent",
   description:
-    "Drawdown-aware autonomous spot trading agent on BNB Chain. Spot only.",
+    "Deterministic autonomous spot trading agent on Bitget. Risk score computed from live market signals — no LLM in the trading decision.",
 };
 
 export default function RootLayout({
@@ -14,7 +15,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Nav />
+        {children}
+      </body>
     </html>
   );
 }
