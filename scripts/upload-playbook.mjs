@@ -116,10 +116,10 @@ const res = await fetch(UPLOAD_URL, {
 });
 
 const body = await res.text();
+console.log(`\nHTTP ${res.status} raw response:\n${body}`);
 
 if (!res.ok) {
   console.error(`Upload failed — HTTP ${res.status}`);
-  console.error(body);
   process.exit(1);
 }
 
@@ -127,8 +127,7 @@ let json;
 try {
   json = JSON.parse(body);
 } catch {
-  console.error('Response is not JSON:');
-  console.error(body);
+  console.error('Response is not JSON (see raw response above)');
   process.exit(1);
 }
 
