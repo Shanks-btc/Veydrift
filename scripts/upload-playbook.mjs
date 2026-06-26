@@ -109,30 +109,31 @@ const blob = new Blob([gz], { type: 'application/gzip' });
 const form = new FormData();
 form.append('package', blob, 'veydrift-playbook.tar.gz');
 
-const res = await fetch(UPLOAD_URL, {
+const r = await fetch(UPLOAD_URL, {
   method: 'POST',
   headers: { 'ACCESS-KEY': key },
   body: form,
 });
 
-const body = await res.text();
-console.log(`\nHTTP ${res.status} raw response:\n${body}`);
+const rawText = await r.text();
+console.log('RAW:', rawText);
 
-if (!res.ok) {
-  console.error(`Upload failed — HTTP ${res.status}`);
+let parsed;
+try {
+  parsed = JSON.parse(rawText);
+} catch {
+  console.error('Response is not valid JSON — see RAW above');
   process.exit(1);
 }
+console.log('PARSED:', JSON.stringify(parsed, null, 2));
 
-let json;
-try {
-  json = JSON.parse(body);
-} catch {
-  console.error('Response is not JSON (see raw response above)');
+if (!r.ok) {
+  console.error(`Upload failed — HTTP ${r.status}`);
   process.exit(1);
 }
 
 console.log('\nUpload successful!');
-console.log(`  draft_id    : ${json.draft_id}`);
-console.log(`  strategy_id : ${json.strategy_id}`);
-console.log(`  name        : ${json.name}`);
-console.log(`  status      : ${json.status}`);
+console.log(`  draft_id    : ${parsed.draft_id}`);
+console.log(`  strategy_id : ${parsed.strategy_id}`);
+console.log(`  name        : ${parsed.name}`);
+console.log(`  status      : ${parsed.status}`);
