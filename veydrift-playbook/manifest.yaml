@@ -1,0 +1,80 @@
+name: veydrift-risk-rotation
+version: "0.0.0"
+display_name: "Veydrift — Risk-Managed Spot Rotation"
+description: "Deterministic 3-component risk score rotates BTC/ETH vs USDT exposure. No LLM in the trading decision."
+long_description: |
+  This Playbook is a spot rotation strategy that aims to capture crypto upside
+  while reducing exposure during high-risk regimes. It trades BTCUSDT and ETHUSDT
+  spot pairs against USDT, allocating capital between volatile assets and stable
+  holdings based on a deterministic risk score computed on every bar. The strategy
+  is long-only — no shorts, no leverage, no perpetuals. Its thesis is that
+  momentum and crowd sentiment together identify periods where holding volatile
+  assets is rewarded and periods where rotating toward stablecoins preserves
+  capital more effectively than staying fully invested.
+
+  The strategy opens or increases its volatile allocation when price momentum
+  across multiple timeframes is calm and market sentiment is below the greed
+  threshold. A quiet near-term price environment combined with a crowd that is
+  not euphoric signals the regime where holding BTC and ETH is most justified.
+  The allocation steps through defined tiers: a calm regime targets the highest
+  volatile weighting, a moderate regime targets a middle allocation, and only an
+  elevated-risk regime steps down to the minimum weighting. The strategy does not
+  attempt to call tops or bottoms — it observes the current regime each bar and
+  targets the corresponding allocation.
+
+  Exits are partial and tier-based. When momentum spikes or sentiment crosses
+  into greed territory, the strategy reduces its volatile allocation and rotates
+  toward stables. The portfolio never closes to zero volatile exposure — a floor
+  is always maintained so the strategy can participate in recovery without a
+  separate re-entry decision. A hard drawdown guardrail provides an additional
+  protective exit: if the portfolio falls significantly from its high-water mark,
+  the strategy forces the lowest-risk tier regardless of momentum or sentiment.
+
+  Two parameters are exposed to subscribers. The margin budget controls the total
+  capital base — raising it increases absolute position size while the return
+  percentage is computed on the same base. Set it to the capital you are willing
+  to deploy. The rebalance threshold controls how far the actual allocation must
+  drift from the target before a trade fires — a higher value reduces trade
+  frequency and costs at the expense of tracking precision, while a lower value
+  keeps allocation closely aligned with the current risk regime.
+
+  The strategy underperforms in sustained trending markets where holding maximum
+  volatile exposure would capture more upside uninterrupted. The drawdown
+  guardrail may rotate into stables near a local bottom and miss the recovery.
+  Momentum and sentiment can temporarily disagree, producing a middle-tier
+  allocation during ambiguous conditions. Backtest results are historical and not
+  a guarantee of future performance. Strategy return and account return diverge
+  when margin budget differs from actual deployed capital.
+
+market_type: spot
+trading_symbols: ["BTCUSDT", "ETHUSDT"]
+decision_mode: deterministic
+backtest_support: full
+runtime_profile: deterministic
+execution_mode: signal_only
+follow_trade_supported: false
+
+strategy_config:
+  trading_symbols: ["BTCUSDT", "ETHUSDT"]
+  margin_budget: "100"
+  rebalance_threshold_pct: 5.0
+  drawdown_kill_pct: 15.0
+
+user_config_schema:
+  margin_budget:
+    type: string
+    default: "100"
+    pattern: "^[0-9]+(\\.[0-9]+)?$"
+    label: "Margin budget USDT"
+  rebalance_threshold_pct:
+    type: number
+    default: 5.0
+    min: 1.0
+    max: 20.0
+    label: "Rebalance threshold %"
+
+schedule:
+  cron: "0 */4 * * *"
+  tz: "Asia/Shanghai"
+
+tags: ["spot", "btc", "eth", "risk-management", "rotation", "deterministic"]
