@@ -3,7 +3,7 @@ import pathlib
 
 from getagent import backtest, data, runtime
 
-from .strategy import VeydriftStrategy, VeydriftStrategyConfig
+from .strategy import VeydriftStrategy
 
 
 def run() -> None:
@@ -54,20 +54,12 @@ def run() -> None:
     spec = runtime.backtest_spec
     instrument_ids = ("BTCUSDT.BINANCE", "ETHUSDT.BINANCE")
 
-    strategy_config = VeydriftStrategyConfig(
-        instrument_ids=instrument_ids,
-        margin_budget=str(margin_budget),
-        rebalance_threshold_pct=rebalance_threshold,
-        drawdown_kill_pct=drawdown_kill,
-    )
-
     result = backtest.run(
         ohlcv_data={
             "BTCUSDT.BINANCE": btc_df,
             "ETHUSDT.BINANCE": eth_df,
         },
         spec=spec,
-        strategy_config=strategy_config,
     )
 
     out_dir = pathlib.Path("/workspace/output")
