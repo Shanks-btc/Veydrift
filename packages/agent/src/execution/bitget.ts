@@ -30,7 +30,8 @@ export interface BitgetOrderParams {
 export interface BitgetBalance {
   btcUsdt: number;    // BTC balance expressed in USD
   ethUsdt: number;    // ETH balance expressed in USD
-  usdtTotal: number;  // raw USDT balance
+  usdtTotal: number;  // USDT + USDC combined stable balance
+  usdcUsdt: number;   // raw USDC balance
   totalUsdt: number;  // sum of all above
   source: "bitget";
 }
@@ -235,22 +236,24 @@ export async function getAccountBalance(): Promise<BitgetBalance | null> {
     const btcBal  = coinBalance("BTC");
     const ethBal  = coinBalance("ETH");
     const usdtBal = coinBalance("USDT");
+    const usdcBal = coinBalance("USDC");
 
-    const btcUsdt  = btcBal  * btcPrice;
-    const ethUsdt  = ethBal  * ethPrice;
-    const totalUsdt = btcUsdt + ethUsdt + usdtBal;
+    const btcUsdt    = btcBal * btcPrice;
+    const ethUsdt    = ethBal * ethPrice;
+    const stableBal  = usdtBal + usdcBal;
+    const totalUsdt  = btcUsdt + ethUsdt + stableBal;
 
     console.log(
       `[veydrift bitget] balance · ` +
-      `BTC=${btcBal.toFixed(6)} ($${btcUsdt.toFixed(2)}) ` +
-      `ETH=${ethBal.toFixed(6)} ($${ethUsdt.toFixed(2)}) ` +
-      `USDT=${usdtBal.toFixed(2)} · total=$${totalUsdt.toFixed(2)}`,
+      `BTC=$${btcUsdt.toFixed(2)} ETH=$${ethUsdt.toFixed(2)} ` +
+      `USDT=$${usdtBal.toFixed(2)} USDC=$${usdcBal.toFixed(2)} · total=$${totalUsdt.toFixed(2)}`,
     );
 
     return {
       btcUsdt,
       ethUsdt,
-      usdtTotal: usdtBal,
+      usdtTotal: stableBal,
+      usdcUsdt: usdcBal,
       totalUsdt,
       source: "bitget",
     };
