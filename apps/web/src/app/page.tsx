@@ -270,9 +270,9 @@ export default function LandingPage() {
             delay="0s"
           />
           <FeatureCard
-            icon="📡"
-            title="Bitget Skill Hub Signals"
-            body="5 analyst-grade skills feed real-time sentiment, technicals, macro events, and market intelligence directly into the risk engine via the Bitget MCP integration."
+            icon="📊"
+            title="Live Bitget Market Data"
+            body="Live Bitget market data feeds real-time price action, funding rates, and sentiment signals directly into the risk engine via the Bitget REST API. No external dependencies — all signals sourced from Bitget directly."
             delay="0.1s"
           />
           <FeatureCard
@@ -503,8 +503,8 @@ export default function LandingPage() {
             {[
               {
                 step: "01",
-                title: "Bitget Skill Hub",
-                items: ["technical-analysis", "sentiment-analyst", "macro-analyst", "market-intel", "news-briefing"],
+                title: "Bitget REST API",
+                items: ["ETH/BTC spot prices", "24h price change", "BTC funding rate", "Sentiment proxy", "Live market data"],
                 color: "var(--blue)",
               },
               {
@@ -515,8 +515,8 @@ export default function LandingPage() {
               },
               {
                 step: "03",
-                title: "Bitget MCP",
-                items: ["spot_place_order", "get_account_assets", "BTCUSDT · ETHUSDT", "Bitget v2 REST"],
+                title: "Bitget Execution",
+                items: ["POST /spot/trade/place-order", "GET /spot/account/assets", "ETHUSDC spot pair", "HMAC-SHA256 signed"],
                 color: "var(--green)",
               },
             ].map((s, i) => (
