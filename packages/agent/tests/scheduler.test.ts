@@ -374,7 +374,10 @@ describe("runScheduler — BLOCKED (all paths blocked)", () => {
     expect(store.state.dayLedger[TODAY]?.status).toBe("BLOCKED");
   });
 
-  it("returns BLOCKED when execution fails on the fallback trade", async () => {
+  it("returns SKIPPED when fallback is stable-to-stable and execution fails", async () => {
+    // USDT→USDC is the fallback pair — not a supported Bitget spot pair.
+    // Execution fails, but stable-to-stable means no meaningful action was possible:
+    // log SKIPPED (not BLOCKED) so the day stays open for a future volatile↔stable trade.
     const store = makeStore();
     const result = await runScheduler({
       totalValueUsd: 1_000,
@@ -382,8 +385,8 @@ describe("runScheduler — BLOCKED (all paths blocked)", () => {
       stableValueUsd: 200,
       deps: makeDeps(store, { executeTrade: stubExecFail }),
     });
-    expect(result.action).toBe("BLOCKED");
-    expect(result.blockedReason).toMatch(/fallback execution failed/i);
+    expect(result.action).toBe("SKIPPED");
+    expect(result.blockedReason).toBeUndefined();
   });
 });
 

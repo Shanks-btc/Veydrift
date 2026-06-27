@@ -441,6 +441,21 @@ export async function runScheduler(input: SchedulerInput): Promise<SchedulerResu
     });
   }
 
+  // Stable-to-stable swaps are not supported on Bitget spot — skip rather than BLOCKED.
+  // SKIPPED leaves the day ledger open so the next invocation can try again with a
+  // volatile↔stable trade if conditions change.
+  if (STABLES.has(fallbackProposal.fromAsset) && STABLES.has(fallbackProposal.toAsset)) {
+    console.log(
+      `[veydrift scheduler] stable-to-stable fallback not supported ` +
+      `(${fallbackProposal.fromAsset}→${fallbackProposal.toAsset}) — logging SKIPPED`,
+    );
+    return conclude("SKIPPED", {
+      proposal: fallbackProposal,
+      drawdownGate: fallbackDrawdownGate,
+      guardrailResults: fallbackGate.guardrailResults,
+    });
+  }
+
   return conclude("BLOCKED", {
     proposal: fallbackProposal,
     drawdownGate: fallbackDrawdownGate,
