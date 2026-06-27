@@ -135,7 +135,7 @@ export async function executeBitgetOrder(
     side,
     orderType: "market",
     force:     "gtc",
-    size:      String(size),
+    size:      parseFloat(size.toFixed(4)).toString(),
     clientOid,
   });
 
