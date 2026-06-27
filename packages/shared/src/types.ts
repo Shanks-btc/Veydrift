@@ -3,6 +3,7 @@
 // liquidation, order book. Every "position" is a spot holding.
 
 export type AssetSymbol =
+  | "BTC"
   | "ETH"
   | "CAKE"
   | "LINK"
@@ -507,7 +508,7 @@ export interface PortfolioSnapshot {
   currentDrawdownPct: number;
   lastBscTxHash: string | null;
   lastCycleResult: SchedulerAction | null;
-  source: "twak" | "env";          // which source provided the portfolio numbers
+  source: "twak" | "bitget" | "env"; // which source provided the portfolio numbers
 }
 
 // ── Agent state (top-level for the dashboard) ─────────────────────────────────
