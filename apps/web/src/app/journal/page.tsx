@@ -36,7 +36,7 @@ function exportCSV(entries: AuditEntry[]) {
     "timestamp,date,pair,direction,size,estimated_value_usd,action,reason,order_id,risk_score_r,mode";
   const rows = entries.map((e) => {
     const p = e.proposal;
-    const pair = p ? `${p.fromAsset}/${p.toAsset}` : "—";
+    const pair = p ? `${p.toAsset}/${p.fromAsset}` : "—";
     const dir  = p
       ? (["USDT","USDC","USD1","FDUSD"].includes(p.fromAsset) && !["USDT","USDC","USD1","FDUSD"].includes(p.toAsset))
         ? "BUY"
@@ -171,21 +171,15 @@ function ExpandedRow({ entry }: { entry: AuditEntry }) {
 // ── Bitget integrations table data ────────────────────────────────────────────
 
 const INTEGRATIONS = [
-  { name: "Bitget Skill Hub",       type: "Claude Code Skill", purpose: "Market signals aggregation",   status: "Active" },
-  { name: "technical-analysis",     type: "Skill",             purpose: "RSI, trend analysis",           status: "Active" },
-  { name: "sentiment-analyst",      type: "Skill",             purpose: "Fear & Greed proxy",            status: "Active" },
-  { name: "macro-analyst",          type: "Skill",             purpose: "Macro event monitoring",        status: "Active" },
-  { name: "market-intel",           type: "Skill",             purpose: "On-chain flow analysis",        status: "Active" },
-  { name: "news-briefing",          type: "Skill",             purpose: "News sentiment scoring",        status: "Active" },
-  { name: "Bitget REST API",        type: "Public REST",       purpose: "BTC/ETH spot prices",          status: "Confirmed" },
-  { name: "Bitget MCP server",      type: "MCP v1.1.0",        purpose: "Order execution",               status: "Active" },
-  { name: "spot_place_order",       type: "MCP Tool",          purpose: "Place spot market orders",      status: "Active" },
-  { name: "get_account_assets",     type: "MCP Tool",          purpose: "Portfolio balance",             status: "Active" },
+  { name: "Bitget REST API",        type: "Public REST",        purpose: "BTC/ETH spot prices, funding rate",        status: "Confirmed" },
+  { name: "Bitget REST API",        type: "Authenticated REST", purpose: "Account balance (ETHUSDC)",                status: "Confirmed" },
+  { name: "Bitget Spot Orders",     type: "Authenticated REST", purpose: "ETHUSDC market order execution",           status: "Confirmed" },
+  { name: "HMAC-SHA256 Signing",    type: "Auth Layer",         purpose: "timestamp + method + path + body",         status: "Confirmed" },
 ];
 
 const GUARDRAILS = [
   { name: "Kill-switch",       desc: "Halts all trading if drawdown exceeds threshold",         threshold: "−25%" },
-  { name: "Allowlist",         desc: "Only BTCUSDT · ETHUSDT spot pairs permitted",              threshold: "Pair check" },
+  { name: "Allowlist",         desc: "Only ETHUSDC spot pair permitted",                          threshold: "Pair check" },
   { name: "Per-trade cap",     desc: "Maximum single swap size as fraction of portfolio",        threshold: "25%" },
   { name: "Daily-loss cap",    desc: "Halts new risk-increasing trades if daily loss exceeded",  threshold: "5%" },
   { name: "Slippage check",    desc: "Rejects execution if realized slippage exceeds limit",     threshold: "1.0%" },
@@ -645,7 +639,7 @@ export default function JournalPage() {
               {
                 icon: "✓",
                 color: "var(--green)",
-                text: "Bitget MCP server: v1.1.0 installed — spot_place_order and get_account_assets tools confirmed",
+                text: "Bitget order execution: live order placed — orderId 1454776900937752580 confirmed on 2026-06-27",
               },
               {
                 icon: "✓",
@@ -689,9 +683,15 @@ export default function JournalPage() {
             >
               GitHub →
             </a>
-            <span className="btn-secondary" style={{ fontSize: "13px", cursor: "default", opacity: 0.6 }}>
-              Live Dashboard — deploy pending
-            </span>
+            <a
+              href="https://veydrift-test-production.up.railway.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary"
+              style={{ fontSize: "13px" }}
+            >
+              Live Dashboard →
+            </a>
           </div>
         </div>
       </section>
