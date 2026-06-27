@@ -205,8 +205,8 @@ async function main(): Promise<void> {
       riskOnTargetPct: 50,        // reduced from 80 for Bitget spot
       neutralTargetPct: 35,       // reduced from 45
       // riskOffTargetPct stays at 18
-      perTradeCapFraction: 0.10,  // max 10% of portfolio per trade ($0.50 on $5)
-      fallbackSwapSizeUsd: 0.5,   // fallback stable swap size
+      perTradeCapFraction: 0.25,  // max 25% of portfolio per trade — meets Bitget $1 minimum
+      fallbackSwapSizeUsd: 1.0,   // fallback stable swap size — meets Bitget $1 minimum
       rebalanceBandPct: 8,        // wider band to reduce churn on small portfolio
       killSwitchPct: -25,         // updated kill-switch for Veydrift
       drawdownAlertPct: -15,      // updated alert threshold
