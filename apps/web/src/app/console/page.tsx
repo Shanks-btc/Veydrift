@@ -182,7 +182,7 @@ export default function ConsolePage() {
   const DRAW_KILL = -25;
   const drawColor = drawdownPct <= DRAW_KILL ? "var(--red)" : drawdownPct <= -8 ? "var(--amber)" : "var(--green)";
 
-  const R    = preview?.R ?? last?.riskScore?.R ?? null;
+  const R    = last?.riskScore?.R ?? preview?.R ?? null;
   const mode = preview?.mode ?? last?.mode ?? null;
 
   const ethPrice  = preview?.snapshot?.price ?? null;
@@ -310,7 +310,7 @@ export default function ConsolePage() {
             </Panel>
 
             {/* Panel 2: Spot Holdings */}
-            <Panel title="Spot Holdings" badge="BTCUSDT · ETHUSDT">
+            <Panel title="Spot Holdings" badge="ETHUSDC · Bitget spot">
               {(() => {
                 const balances = snap?.tokenBalances ?? {};
                 const entries = Object.entries(balances);
@@ -422,11 +422,11 @@ export default function ConsolePage() {
 
             {/* Panel 4: Market Signals */}
             <Panel
-              title="Bitget Skill Hub — Live"
+              title="Market Signals — Preview"
               badge={preview?.priceIsSimulation ? "SIMULATED" : "LIVE"}
             >
               {[
-                { label: "ETH Price",     value: ethPrice  !== null ? fmtUsd(ethPrice)                                           : "—",     mono: true  },
+                { label: "ETH Price (est.)", value: ethPrice !== null ? fmtUsd(ethPrice) : "—", mono: true },
                 { label: "ETH 24h",       value: change24h !== null ? fmtPct(change24h)                                          : "—",     mono: true,  color: change24h !== null ? (change24h >= 0 ? "var(--green)" : "var(--red)") : undefined },
                 { label: "ETH 1h",        value: change1h  !== null ? fmtPct(change1h)                                           : "—",     mono: true,  color: change1h  !== null ? (change1h  >= 0 ? "var(--green)" : "var(--red)") : undefined },
                 { label: "Sentiment",     value: fearGreed !== null ? `${fearGreed.toFixed(0)} — ${fgLabel(fearGreed)}`         : "—",     color: fearGreed !== null ? fgColor(fearGreed) : undefined },
@@ -548,7 +548,9 @@ export default function ConsolePage() {
                     <div style={{ marginBottom: "12px" }}>
                       <div className="vd-label">Reason</div>
                       <div style={{ fontSize: "12px", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-                        {last.proposal.reason.slice(0, 120)}
+                        {last.proposal.reason.length > 160
+                          ? last.proposal.reason.slice(0, 160) + "…"
+                          : last.proposal.reason}
                       </div>
                     </div>
                   )}
