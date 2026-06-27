@@ -193,10 +193,24 @@ async function fetchBitgetBalance(): Promise<{ snapshot: PortfolioSnapshot | nul
 
     const portfolioUsd = volatileUsd + stableUsd;
 
+    let hwm = portfolioUsd;
+    try {
+      const agentState = JSON.parse(
+        readFileSync(join(DATA_DIR, "agent-state.json"), "utf8"),
+      ) as { highWaterMarkUsd?: number };
+      if (typeof agentState.highWaterMarkUsd === "number" && agentState.highWaterMarkUsd > 0) {
+        hwm = agentState.highWaterMarkUsd;
+      }
+    } catch { /* use portfolioUsd as default */ }
+
+    const currentDrawdownPct = hwm > 0 && portfolioUsd > 0
+      ? ((portfolioUsd - hwm) / hwm) * 100
+      : 0;
+
     console.log(
       `[portfolio] Bitget balance · ` +
       `volatile=$${volatileUsd.toFixed(2)} stable=$${stableUsd.toFixed(2)} ` +
-      `total=$${portfolioUsd.toFixed(2)}`,
+      `total=$${portfolioUsd.toFixed(2)} hwm=$${hwm.toFixed(2)} dd=${currentDrawdownPct.toFixed(2)}%`,
     );
 
     return {
@@ -209,8 +223,8 @@ async function fetchBitgetBalance(): Promise<{ snapshot: PortfolioSnapshot | nul
           stablePct:   portfolioUsd > 0 ? (stableUsd   / portfolioUsd) * 100 : 0,
           gasPct: 0,
         },
-        hwm: 0,
-        currentDrawdownPct: 0,
+        hwm,
+        currentDrawdownPct,
         lastBscTxHash: null,
         lastCycleResult: null,
         source: "bitget",

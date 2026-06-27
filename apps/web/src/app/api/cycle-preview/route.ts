@@ -1,5 +1,5 @@
 // Server-side API route — runs the §0a risk formula and §4 drawdown-gate logic.
-// Fetches live CMC data when CMC_PRO_API_KEY is set; falls back to a neutral
+// Fetches live data from Bitget public API (no auth needed); falls back to a neutral
 // mock snapshot and returns priceIsSimulation: true.
 // Supports ?direction=to-stable for a Rotate to Stables preview.
 
@@ -81,44 +81,50 @@ function checkDrawdownGate(
   };
 }
 
-// Fallback snapshot used when CMC_PRO_API_KEY is absent or the API call fails.
+// Fallback snapshot used when the Bitget API call fails.
 const FALLBACK_SNAPSHOT = { change1h: 0.5, change24h: 2.0, fearGreed: 45, symbol: "ETH", price: 3_400 };
 
-// Attempt to fetch live ETH quote and Fear&Greed from CMC REST API.
+// Fetch live ETH price and BTC funding rate from Bitget public API (no auth needed).
 // Returns null on any error — caller falls back to FALLBACK_SNAPSHOT.
-async function fetchLiveSnapshot(): Promise<typeof FALLBACK_SNAPSHOT | null> {
-  const key = process.env.CMC_PRO_API_KEY;
-  if (!key) return null;
-
+async function fetchBitgetSnapshot(): Promise<typeof FALLBACK_SNAPSHOT | null> {
   try {
-    const [quoteRes, fgRes] = await Promise.all([
-      fetch("https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?id=1027", {
-        headers: { "X-CMC_PRO_API_KEY": key, Accept: "application/json" },
+    const [tickerRes, fundingRes] = await Promise.all([
+      fetch("https://api.bitget.com/api/v2/spot/market/tickers?symbol=ETHUSDT", {
         signal: AbortSignal.timeout(8_000),
       }),
-      fetch("https://pro-api.coinmarketcap.com/v3/fear-and-greed/latest", {
-        headers: { "X-CMC_PRO_API_KEY": key, Accept: "application/json" },
+      fetch("https://api.bitget.com/api/v2/mix/market/current-fund-rate?symbol=BTCUSDT&productType=USDT-FUTURES", {
         signal: AbortSignal.timeout(8_000),
       }),
     ]);
 
-    const quoteData = (await quoteRes.json()) as {
-      data?: { "1027"?: { quote?: { USD?: { price?: number; percent_change_1h?: number; percent_change_24h?: number } } } };
+    const tickerData = await tickerRes.json() as {
+      code: string;
+      data: Array<{ lastPr: string; change24h: string }>;
     };
-    const fgData = (await fgRes.json()) as {
-      data?: { value?: number };
+    const fundingData = await fundingRes.json() as {
+      code: string;
+      data: Array<{ fundingRate: string }>;
     };
 
-    const eth = quoteData?.data?.["1027"]?.quote?.USD;
-    if (!eth || typeof eth.price !== "number") return null;
+    if (tickerData.code !== "00000" || !tickerData.data?.[0]) return null;
 
-    return {
-      symbol: "ETH",
-      price: eth.price,
-      change1h: eth.percent_change_1h ?? 0,
-      change24h: eth.percent_change_24h ?? 0,
-      fearGreed: typeof fgData?.data?.value === "number" ? fgData.data.value : 45,
-    };
+    const ticker = tickerData.data[0];
+    const price = parseFloat(ticker.lastPr ?? "0");
+    if (isNaN(price) || price <= 0) return null;
+
+    const change24hRaw = parseFloat(ticker.change24h ?? "0");
+    const change24h = isNaN(change24hRaw) ? 0 : change24hRaw * 100;
+
+    const fundingRate = fundingData.code === "00000"
+      ? parseFloat(fundingData.data?.[0]?.fundingRate ?? "0")
+      : 0;
+
+    let fearGreed: number;
+    if (fundingRate > 0.0003) fearGreed = 75;
+    else if (fundingRate < -0.0003) fearGreed = 25;
+    else fearGreed = 50;
+
+    return { symbol: "ETH", price, change1h: 0, change24h, fearGreed };
   } catch {
     return null;
   }
@@ -162,7 +168,7 @@ export async function GET(request: NextRequest) {
 
   // ── Standard cycle preview ────────────────────────────────────────────────
   const fetchedAt = new Date().toISOString();
-  const liveSnapshot = await fetchLiveSnapshot();
+  const liveSnapshot = await fetchBitgetSnapshot();
   const snapshot = liveSnapshot ?? FALLBACK_SNAPSHOT;
   const priceIsSimulation = liveSnapshot === null;
   const dataSource: "live" | "fallback" = liveSnapshot ? "live" : "fallback";
