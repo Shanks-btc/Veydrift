@@ -21,7 +21,7 @@ const FETCH_TIMEOUT_MS = 15_000;
 // ── Exported types ────────────────────────────────────────────────────────────
 
 export interface BitgetOrderParams {
-  symbol: "BTCUSDT" | "ETHUSDT";
+  symbol: "BTCUSDT" | "ETHUSDC";
   side: "buy" | "sell";
   size: number;     // USDT amount for buy; base-asset quantity for sell
   dryRun?: boolean;

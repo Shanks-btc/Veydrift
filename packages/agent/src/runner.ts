@@ -68,7 +68,7 @@ const STABLES = new Set(["USDT", "USDC", "USD1", "FDUSD"]);
 function dryRunExecute(plan: ExecutionPlan): ExecutionResult {
   const { proposal } = plan;
   const isEth = proposal.fromAsset === "ETH" || proposal.toAsset === "ETH";
-  const symbol: "BTCUSDT" | "ETHUSDT" = isEth ? "ETHUSDT" : "BTCUSDT";
+  const symbol: "BTCUSDT" | "ETHUSDC" = isEth ? "ETHUSDC" : "BTCUSDT";
   const side: "buy" | "sell" = STABLES.has(proposal.fromAsset) ? "buy" : "sell";
   console.log(
     `[veydrift dry-run] would executeBitgetOrder · ${side} ${symbol} ` +
@@ -184,7 +184,7 @@ async function main(): Promise<void> {
     }
 
     const isEth = proposal.fromAsset === "ETH" || proposal.toAsset === "ETH";
-    const symbol: "BTCUSDT" | "ETHUSDT" = isEth ? "ETHUSDT" : "BTCUSDT";
+    const symbol: "BTCUSDT" | "ETHUSDC" = isEth ? "ETHUSDC" : "BTCUSDT";
     const side: "buy" | "sell" = STABLES.has(proposal.fromAsset) ? "buy" : "sell";
 
     console.log(
@@ -213,7 +213,7 @@ async function main(): Promise<void> {
     },
     deps: {
       stateDir: dataDir,
-      restFetcher: () => fetchBitgetSnapshot("ETHUSDT"),
+      restFetcher: () => fetchBitgetSnapshot("ETHUSDC"),
       ...(isDryRun
         ? { dryRun: true, executeTrade: dryRunExecute }
         : { executeTrade: liveExecute }),
