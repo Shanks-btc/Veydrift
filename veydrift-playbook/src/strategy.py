@@ -1,21 +1,23 @@
 from decimal import Decimal
-from typing import Optional, Tuple
+from typing import Optional
 
 from nautilus_trader.config import StrategyConfig
 from nautilus_trader.model.data import Bar, BarType
+from nautilus_trader.model.enums import OrderSide, TimeInForce
 from nautilus_trader.model.identifiers import InstrumentId
+from nautilus_trader.model.objects import Quantity
 from nautilus_trader.trading.strategy import Strategy
-
-from getagent import runtime
 
 from .indicators import compute_risk_score, get_mode, get_target_volatile_pct, needs_rebalance
 from .risk import check_drawdown_guardrail
 
 
 class VeydriftStrategyConfig(StrategyConfig):
-    instrument_ids: Tuple[str, ...] = ()
-    bar_types: Tuple[BarType, ...] = ()  # injected by backtest runner from backtest.yaml bar_type fields
-    margin_budget: str = "100"
+    instrument_id: Optional[InstrumentId] = None
+    bar_type: Optional[BarType] = None
+    instrument_ids: tuple[InstrumentId, ...] = ()
+    bar_types: tuple[BarType, ...] = ()
+    trade_size: str = "0.01"
     rebalance_threshold_pct: float = 5.0
     drawdown_kill_pct: float = 15.0
     order_id_tag: str = "001"
@@ -24,125 +26,108 @@ class VeydriftStrategyConfig(StrategyConfig):
 class VeydriftStrategy(Strategy):
     def __init__(self, config: VeydriftStrategyConfig) -> None:
         super().__init__(config)
-        self.config = config
-        self._hwm: float = float(config.margin_budget)
+        self.cfg = config
+        self._price_history: dict = {}   # iid_str -> list[float], max 25 bars
+        self._positions: dict = {}       # iid_str -> "LONG" | "NONE"
+        self._hwm: float = 0.0
         self._current_volatile_pct: float = 0.0
-        self._bar_counts: dict = {}
-        self._last_close: dict = {}
-        self._open_prices: dict = {}
-        self._instrument_ids: Tuple[str, ...] = ()
 
     def on_start(self) -> None:
-        cfg = runtime.manifest.get("strategy_config", {})
-        self._margin_budget = float(cfg.get("margin_budget", self.config.margin_budget))
-        self._rebalance_threshold = float(
-            cfg.get("rebalance_threshold_pct", self.config.rebalance_threshold_pct)
-        )
-        self._drawdown_kill = float(
-            cfg.get("drawdown_kill_pct", self.config.drawdown_kill_pct)
-        )
+        # Prefer injected bar_types from runner; fall back to singular bar_type
+        bar_types_to_use = list(self.cfg.bar_types)
+        if not bar_types_to_use and self.cfg.bar_type is not None:
+            bar_types_to_use = [self.cfg.bar_type]
 
-        # Use injected bar_types when available; fall back to constructing from instrument_ids
-        if self.config.bar_types:
-            subscribe_to = self.config.bar_types
-            self._instrument_ids = tuple(str(bt.instrument_id) for bt in subscribe_to)
-        else:
-            self._instrument_ids = self.config.instrument_ids
-            subscribe_to = tuple(
-                BarType.from_str(f"{iid}-1-HOUR-LAST-EXTERNAL")
-                for iid in self._instrument_ids
-            )
-
-        for bar_type in subscribe_to:
+        for bar_type in bar_types_to_use:
             iid_str = str(bar_type.instrument_id)
             self.subscribe_bars(bar_type)
-            self._bar_counts[iid_str] = 0
-            self._last_close[iid_str] = None
-            self._open_prices[iid_str] = []
+            self._price_history[iid_str] = []
+            self._positions[iid_str] = "NONE"
 
     def on_bar(self, bar: Bar) -> None:
         iid_str = str(bar.bar_type.instrument_id)
-        self._bar_counts[iid_str] = self._bar_counts.get(iid_str, 0) + 1
         close = float(bar.close)
-        self._last_close[iid_str] = close
 
-        history = self._open_prices.get(iid_str, [])
+        history = self._price_history.get(iid_str, [])
         history.append(close)
         if len(history) > 25:
             history = history[-25:]
-        self._open_prices[iid_str] = history
+        self._price_history[iid_str] = history
 
-        if not all(self._last_close.get(s) is not None for s in self._instrument_ids):
+        # Wait until every subscribed instrument has 25 bars of history
+        if not all(len(h) >= 25 for h in self._price_history.values()):
             return
 
         self._evaluate()
 
     def _evaluate(self) -> None:
-        fear_greed = getattr(self, "_latest_fear_greed", 50.0)
+        fear_greed = 50.0  # constant in backtest; no live sentiment data in replay
 
         risk_scores = []
-        for iid_str in self._instrument_ids:
-            history = self._open_prices.get(iid_str, [])
-            if len(history) < 25:
-                return
+        sum_price = 0.0
+        for iid_str, history in self._price_history.items():
             close_now = history[-1]
-            close_1h_ago = history[-2] if len(history) >= 2 else close_now
-            close_24h_ago = history[-25] if len(history) >= 25 else history[0]
+            close_1h_ago = history[-2]
+            close_24h_ago = history[-25]
             change_1h = (close_now - close_1h_ago) / close_1h_ago * 100.0 if close_1h_ago else 0.0
             change_24h = (close_now - close_24h_ago) / close_24h_ago * 100.0 if close_24h_ago else 0.0
-            r = compute_risk_score(change_1h, change_24h, fear_greed)
-            risk_scores.append((iid_str, r, change_1h, change_24h))
+            risk_scores.append(compute_risk_score(change_1h, change_24h, fear_greed))
+            sum_price += close_now
 
-        if not risk_scores:
-            return
+        avg_r = sum(risk_scores) / len(risk_scores)
+        avg_price = sum_price / len(self._price_history)
 
-        avg_r = sum(s[1] for s in risk_scores) / len(risk_scores)
-        avg_1h = sum(s[2] for s in risk_scores) / len(risk_scores)
-        avg_24h = sum(s[3] for s in risk_scores) / len(risk_scores)
+        # Use average price as portfolio-value proxy for HWM / drawdown tracking
+        if self._hwm == 0.0:
+            self._hwm = avg_price
+        elif avg_price > self._hwm:
+            self._hwm = avg_price
 
-        portfolio_value = self._margin_budget
-        kill = check_drawdown_guardrail(portfolio_value, self._hwm, self._drawdown_kill)
-        if portfolio_value > self._hwm:
-            self._hwm = portfolio_value
-
-        if kill:
-            mode = "risk_off"
-            target_volatile = 0.18
-            reason = f"drawdown guardrail triggered (portfolio fell >{self._drawdown_kill}% from HWM)"
-        else:
-            mode = get_mode(avg_r)
-            target_volatile = get_target_volatile_pct(mode)
-            reason = (
-                f"risk_score={avg_r:.3f} mode={mode} "
-                f"change_1h={avg_1h:.2f}% change_24h={avg_24h:.2f}% "
-                f"fear_greed={fear_greed:.0f}"
-            )
+        kill = check_drawdown_guardrail(avg_price, self._hwm, self.cfg.drawdown_kill_pct)
+        mode = "risk_off" if kill else get_mode(avg_r)
+        target_volatile = get_target_volatile_pct(mode)
 
         if not needs_rebalance(
-            self._current_volatile_pct, target_volatile * 100.0, self._rebalance_threshold
+            self._current_volatile_pct,
+            target_volatile * 100.0,
+            self.cfg.rebalance_threshold_pct,
         ):
             return
 
         self._current_volatile_pct = target_volatile * 100.0
-        target_per_symbol = target_volatile / max(len(self._instrument_ids), 1)
 
-        for iid_str in self._instrument_ids:
-            symbol = iid_str.split(".")[0]
-            side = "buy" if target_per_symbol > 0 else "hold"
-            runtime.emit_signal(
-                action=side,
-                symbol=symbol,
-                confidence=1.0 - avg_r,
-                metrics={
-                    "risk_score": avg_r,
-                    "mode": mode,
-                    "target_pct": target_per_symbol * 100.0,
-                    "reason": reason,
-                },
-            )
+        for iid_str in self._price_history:
+            instrument_id = InstrumentId.from_str(iid_str)
+            instrument = self.cache.instrument(instrument_id)
+            if instrument is None:
+                continue
+
+            qty = Quantity(Decimal(self.cfg.trade_size), instrument.size_precision)
+            current_pos = self._positions.get(iid_str, "NONE")
+
+            if target_volatile > 0.18 and current_pos == "NONE":
+                order = self.order_factory.market(
+                    instrument_id=instrument_id,
+                    order_side=OrderSide.BUY,
+                    quantity=qty,
+                    time_in_force=TimeInForce.GTC,
+                )
+                self.submit_order(order)
+                self._positions[iid_str] = "LONG"
+
+            elif mode == "risk_off" and current_pos == "LONG":
+                for position in self.cache.positions_open(instrument_id=instrument_id):
+                    close_order = self.order_factory.market(
+                        instrument_id=instrument_id,
+                        order_side=OrderSide.SELL,
+                        quantity=position.quantity,
+                        time_in_force=TimeInForce.GTC,
+                    )
+                    self.submit_order(close_order)
+                self._positions[iid_str] = "NONE"
 
     def on_stop(self) -> None:
-        for iid_str in self._instrument_ids:
+        for iid_str in list(self._price_history.keys()):
             instrument_id = InstrumentId.from_str(iid_str)
             self.cancel_all_orders(instrument_id)
             self.close_all_positions(instrument_id)
