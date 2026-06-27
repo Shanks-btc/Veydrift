@@ -26,6 +26,11 @@ interface CyclePreviewResponse {
   priceIsSimulation: boolean;
 }
 
+interface PortfolioResponse {
+  ok: boolean;
+  snapshot: { portfolioUsd: number } | null;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function modeColor(mode: string): string {
@@ -113,15 +118,18 @@ function FeatureCard({
 export default function LandingPage() {
   const [agentData, setAgentData] = useState<AgentStateResponse | null>(null);
   const [previewData, setPreviewData] = useState<CyclePreviewResponse | null>(null);
+  const [portfolioData, setPortfolioData] = useState<PortfolioResponse | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
-      const [stateRes, previewRes] = await Promise.all([
+      const [stateRes, previewRes, portfolioRes] = await Promise.all([
         fetch("/api/agent-state"),
         fetch("/api/cycle-preview"),
+        fetch("/api/portfolio"),
       ]);
       if (stateRes.ok) setAgentData((await stateRes.json()) as AgentStateResponse);
       if (previewRes.ok) setPreviewData((await previewRes.json()) as CyclePreviewResponse);
+      if (portfolioRes.ok) setPortfolioData((await portfolioRes.json()) as PortfolioResponse);
     } catch {
       // keep previous data on network failure
     }
@@ -132,9 +140,10 @@ export default function LandingPage() {
   }, [fetchData]);
 
   const last = agentData?.lastAuditEntry ?? null;
-  const totalValue = agentData?.balanceSummary?.totalUsd ?? null;
+  const totalValue = portfolioData?.snapshot?.portfolioUsd ?? agentData?.balanceSummary?.totalUsd ?? null;
   const liveCycles = agentData?.liveCycles ?? 0;
-  const R = previewData?.R ?? null;
+  const rIsFromAudit = last?.riskScore?.R != null;
+  const R = last?.riskScore?.R ?? previewData?.R ?? null;
   const mode = previewData?.mode ?? last?.mode ?? null;
 
   // Active since: first entry in day ledger
@@ -227,13 +236,13 @@ export default function LandingPage() {
           <StatCard
             label="Live Cycles"
             value={liveCycles > 0 ? String(liveCycles) : "—"}
-            sub={firstDate ? `Since ${firstDate}` : "Awaiting first cycle"}
+            sub={liveCycles > 0 ? (firstDate ? `Since ${firstDate}` : "Cycles recorded") : "Awaiting first cycle"}
             delay="0.1s"
           />
           <StatCard
             label="Risk Score R"
             value={R !== null ? R.toFixed(3) : "—"}
-            sub={R !== null ? `${previewData?.priceIsSimulation ? "Simulated" : "Live"} signals` : "No data yet"}
+            sub={R !== null ? (rIsFromAudit ? "Live signals" : `${previewData?.priceIsSimulation ? "Simulated" : "Live"} signals`) : "No data yet"}
             color={
               R !== null
                 ? R < 0.33
