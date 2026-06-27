@@ -223,8 +223,9 @@ export interface PolicyConfig {
   riskOffTargetPct: number;  // default 18  — NEVER 0
 
   // Guardrails
-  perTradeCapFraction: number; // default 0.25 — max single swap as fraction of portfolio
-  dailyLossCapPct: number;     // default 5    — % of portfolio, halts new risk
+  perTradeCapFraction: number;  // default 0.25 — max single swap as fraction of portfolio
+  minTradeValueUsd?: number;    // optional — skip trades below this USD value (e.g. 1.25 for Bitget)
+  dailyLossCapPct: number;      // default 5    — % of portfolio, halts new risk
   maxSlippagePct: number;      // default 1.0  — rejects if TWAK priceImpact exceeds this
   drawdownAlertPct: number;    // default -12  — warn threshold (< 0)
   killSwitchPct: number;       // default -18  — hard backstop (< drawdownAlertPct)

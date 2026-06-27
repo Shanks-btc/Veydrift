@@ -156,6 +156,20 @@ async function main(): Promise<void> {
   );
   console.log(`[veydrift runner] HWM=$${hwm.toFixed(2)} · data=${dataDir}`);
 
+  // ── Policy override ─────────────────────────────────────────────────────
+  const policy = {
+    ...DEFAULT_POLICY,
+    riskOnTargetPct: 50,        // reduced from 80 for Bitget spot
+    neutralTargetPct: 35,       // reduced from 45
+    // riskOffTargetPct stays at 18
+    perTradeCapFraction: 0.25,  // max 25% of portfolio per trade — meets Bitget $1 minimum
+    fallbackSwapSizeUsd: 1.0,   // fallback stable swap size — meets Bitget $1 minimum
+    rebalanceBandPct: 8,        // wider band to reduce churn on small portfolio
+    killSwitchPct: -25,         // updated kill-switch for Veydrift
+    drawdownAlertPct: -15,      // updated alert threshold
+    minTradeValueUsd: 1.25,     // skip trades below Bitget $1 minimum (25% buffer)
+  };
+
   // ── Live Bitget executor ────────────────────────────────────────────────
   // The scheduler's executeTrade interface is synchronous; executeBitgetOrder
   // is async. Bridge: fire the request immediately (no await), return an
@@ -184,6 +198,13 @@ async function main(): Promise<void> {
       };
     }
 
+    if (proposal.estimatedValueUsd < policy.minTradeValueUsd) {
+      console.warn(
+        `[veydrift runner] trade below minimum $${policy.minTradeValueUsd} — skipping`,
+      );
+      return { ok: false, error: "Order size below Bitget $1 minimum" };
+    }
+
     const isEth = proposal.fromAsset === "ETH" || proposal.toAsset === "ETH";
     const symbol: "BTCUSDT" | "ETHUSDC" = isEth ? "ETHUSDC" : "BTCUSDT";
     const side: "buy" | "sell" = STABLES.has(proposal.fromAsset) ? "buy" : "sell";
@@ -201,20 +222,10 @@ async function main(): Promise<void> {
     totalValueUsd,
     volatileValueUsd,
     stableValueUsd,
-    policy: {
-      ...DEFAULT_POLICY,
-      riskOnTargetPct: 50,        // reduced from 80 for Bitget spot
-      neutralTargetPct: 35,       // reduced from 45
-      // riskOffTargetPct stays at 18
-      perTradeCapFraction: 0.25,  // max 25% of portfolio per trade — meets Bitget $1 minimum
-      fallbackSwapSizeUsd: 1.0,   // fallback stable swap size — meets Bitget $1 minimum
-      rebalanceBandPct: 8,        // wider band to reduce churn on small portfolio
-      killSwitchPct: -25,         // updated kill-switch for Veydrift
-      drawdownAlertPct: -15,      // updated alert threshold
-    },
+    policy,
     deps: {
       stateDir: dataDir,
-      restFetcher: () => fetchBitgetSnapshot("ETHUSDC"),
+      restFetcher: () => fetchBitgetSnapshot("ETHUSDT"),
       ...(isDryRun
         ? { dryRun: true, executeTrade: dryRunExecute }
         : { executeTrade: liveExecute }),
