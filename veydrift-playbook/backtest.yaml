@@ -42,6 +42,3 @@ instruments:
     taker_fee: "0.0005"
     bar_type: ETHUSDT.BINANCE-1-HOUR-LAST-EXTERNAL
 
-data_requirements:
-  required_bar_fields:
-    - quote_volume
