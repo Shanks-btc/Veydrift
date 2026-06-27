@@ -26,9 +26,10 @@ export default function Nav() {
     { href: "/", label: "Overview" },
     { href: "/console", label: "Console" },
     { href: "/journal", label: "Journal" },
+    { href: "/playbook", label: "Playbook" },
   ];
 
-  const tabIcons = ["⌂", "◉", "≡"];
+  const tabIcons = ["⌂", "◉", "≡", "◈"];
 
   return (
     <>
