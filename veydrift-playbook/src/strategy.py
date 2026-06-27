@@ -14,6 +14,7 @@ from .risk import check_drawdown_guardrail
 
 class VeydriftStrategyConfig(StrategyConfig):
     instrument_ids: Tuple[str, ...] = ()
+    bar_types: Tuple[BarType, ...] = ()  # injected by backtest runner from backtest.yaml bar_type fields
     margin_budget: str = "100"
     rebalance_threshold_pct: float = 5.0
     drawdown_kill_pct: float = 15.0
@@ -29,6 +30,7 @@ class VeydriftStrategy(Strategy):
         self._bar_counts: dict = {}
         self._last_close: dict = {}
         self._open_prices: dict = {}
+        self._instrument_ids: Tuple[str, ...] = ()
 
     def on_start(self) -> None:
         cfg = runtime.manifest.get("strategy_config", {})
@@ -40,9 +42,19 @@ class VeydriftStrategy(Strategy):
             cfg.get("drawdown_kill_pct", self.config.drawdown_kill_pct)
         )
 
-        for iid_str in self.config.instrument_ids:
-            instrument_id = InstrumentId.from_str(iid_str)
-            bar_type = BarType.from_str(f"{iid_str}-1-HOUR-LAST-EXTERNAL")
+        # Use injected bar_types when available; fall back to constructing from instrument_ids
+        if self.config.bar_types:
+            subscribe_to = self.config.bar_types
+            self._instrument_ids = tuple(str(bt.instrument_id) for bt in subscribe_to)
+        else:
+            self._instrument_ids = self.config.instrument_ids
+            subscribe_to = tuple(
+                BarType.from_str(f"{iid}-1-HOUR-LAST-EXTERNAL")
+                for iid in self._instrument_ids
+            )
+
+        for bar_type in subscribe_to:
+            iid_str = str(bar_type.instrument_id)
             self.subscribe_bars(bar_type)
             self._bar_counts[iid_str] = 0
             self._last_close[iid_str] = None
@@ -60,7 +72,7 @@ class VeydriftStrategy(Strategy):
             history = history[-25:]
         self._open_prices[iid_str] = history
 
-        if not all(self._last_close.get(s) is not None for s in self.config.instrument_ids):
+        if not all(self._last_close.get(s) is not None for s in self._instrument_ids):
             return
 
         self._evaluate()
@@ -69,7 +81,7 @@ class VeydriftStrategy(Strategy):
         fear_greed = getattr(self, "_latest_fear_greed", 50.0)
 
         risk_scores = []
-        for iid_str in self.config.instrument_ids:
+        for iid_str in self._instrument_ids:
             history = self._open_prices.get(iid_str, [])
             if len(history) < 25:
                 return
@@ -112,9 +124,9 @@ class VeydriftStrategy(Strategy):
             return
 
         self._current_volatile_pct = target_volatile * 100.0
-        target_per_symbol = target_volatile / len(self.config.instrument_ids)
+        target_per_symbol = target_volatile / max(len(self._instrument_ids), 1)
 
-        for iid_str in self.config.instrument_ids:
+        for iid_str in self._instrument_ids:
             symbol = iid_str.split(".")[0]
             side = "buy" if target_per_symbol > 0 else "hold"
             runtime.emit_signal(
@@ -130,7 +142,7 @@ class VeydriftStrategy(Strategy):
             )
 
     def on_stop(self) -> None:
-        for iid_str in self.config.instrument_ids:
+        for iid_str in self._instrument_ids:
             instrument_id = InstrumentId.from_str(iid_str)
             self.cancel_all_orders(instrument_id)
             self.close_all_positions(instrument_id)
