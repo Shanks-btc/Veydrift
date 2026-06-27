@@ -16,6 +16,34 @@ export function appendAuditEntry(
   fs.appendFileSync(fp, JSON.stringify(entry) + "\n", "utf8");
 }
 
+// Patch a single audit entry by cycleId (in-place line rewrite).
+// Used only to add bitgetOrderId after the async order response arrives —
+// the scheduler writes the entry optimistically before the real orderId is known.
+export function patchAuditEntry(
+  cycleId: string,
+  patch: Partial<AuditEntry>,
+  dataDir = "./data",
+): void {
+  const fp = path.join(dataDir, AUDIT_FILE);
+  try {
+    const raw = fs.readFileSync(fp, "utf8");
+    const lines = raw.split("\n");
+    const updated = lines.map((line) => {
+      if (!line.trim()) return line;
+      try {
+        const entry = JSON.parse(line) as AuditEntry;
+        if (entry.cycleId === cycleId) {
+          return JSON.stringify({ ...entry, ...patch });
+        }
+      } catch { /* skip malformed lines */ }
+      return line;
+    });
+    fs.writeFileSync(fp, updated.join("\n"), "utf8");
+  } catch {
+    // Patch failure is non-fatal — orderId will be absent from this audit entry
+  }
+}
+
 export function readAuditLog(dataDir = "./data"): AuditEntry[] {
   const fp = path.join(dataDir, AUDIT_FILE);
   try {

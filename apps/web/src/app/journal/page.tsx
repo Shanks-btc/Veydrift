@@ -153,11 +153,11 @@ function ExpandedRow({ entry }: { entry: AuditEntry }) {
             <div style={{ fontSize: "12px", color: "var(--text-secondary)", lineHeight: "1.6" }}>
               {p?.reason ?? entry.blockedReason ?? "—"}
             </div>
-            {entry.txHash && (
+            {entry.bitgetOrderId && (
               <div style={{ marginTop: "8px" }}>
                 <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "2px" }}>Order ID</div>
                 <div className="font-mono" style={{ fontSize: "11px", color: "var(--text-muted)", wordBreak: "break-all" }}>
-                  {entry.txHash}
+                  {entry.bitgetOrderId}
                 </div>
               </div>
             )}
@@ -435,7 +435,9 @@ export default function JournalPage() {
                           </span>
                         </td>
                         <td className="font-mono hide-mobile" style={{ fontSize: "12px" }}>
-                          {e.proposal ? `${e.proposal.fromAsset}/${e.proposal.toAsset}` : "—"}
+                          {e.proposal
+                            ? `${e.proposal.toAsset}/${e.proposal.fromAsset}`
+                            : "—"}
                         </td>
                         <td className="hide-mobile" style={{ fontSize: "12px" }}>
                           {getDirection(e)}
@@ -456,8 +458,8 @@ export default function JournalPage() {
                           {e.proposal?.reason ?? e.blockedReason ?? "—"}
                         </td>
                         <td className="font-mono hide-mobile" style={{ fontSize: "11px" }}>
-                          {e.txHash
-                            ? `${e.txHash.slice(0, 12)}…`
+                          {e.bitgetOrderId
+                            ? `${e.bitgetOrderId.slice(0, 12)}…`
                             : "—"}
                         </td>
                       </tr>

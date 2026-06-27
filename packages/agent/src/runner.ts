@@ -49,6 +49,7 @@ import {
   writePortfolioSnapshot,
   DEFAULT_DATA_DIR,
 } from "./state/persistence.js";
+import { patchAuditEntry } from "./state/audit.js";
 import { fetchBitgetSnapshot, fetchBitgetSignals } from "./perception/bitget-signals.js";
 import { executeBitgetOrder, getAccountBalance } from "./execution/bitget.js";
 import { DEFAULT_POLICY } from "./config.js";
@@ -227,7 +228,11 @@ async function main(): Promise<void> {
   if (!isDryRun && inflightPromise !== null) {
     const finalBitget = await inflightPromise;
     if (finalBitget.ok) {
-      console.log(`[veydrift runner] Bitget order confirmed · orderId=${finalBitget.txHash ?? "unknown"}`);
+      const orderId = finalBitget.txHash;
+      console.log(`[veydrift runner] Bitget order confirmed · orderId=${orderId ?? "unknown"}`);
+      if (orderId) {
+        patchAuditEntry(result.auditEntry.cycleId, { bitgetOrderId: orderId }, dataDir);
+      }
     } else {
       console.error(`[veydrift runner] Bitget order failed: ${finalBitget.error ?? "unknown"}`);
     }

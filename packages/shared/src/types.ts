@@ -483,6 +483,7 @@ export interface AuditEntry {
   killSwitchTriggered: boolean;
   action: SchedulerAction;
   txHash?: string;                     // BSC tx hash (NEVER a Base/x402 hash)
+  bitgetOrderId?: string;              // Bitget orderId returned by place-order (patched in post-execution)
   x402Proof?: X402PaymentProof;        // Base payment proof — strictly separate from BSC
   blockedReason?: string;
   dryRun?: boolean;                    // true when produced by a dry-run cycle; no funds moved
