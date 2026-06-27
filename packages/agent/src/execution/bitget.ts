@@ -148,6 +148,19 @@ export async function executeBitgetOrder(
     return { ok: true };
   }
 
+  // For sell orders, verify estimated USD value meets the $1 Bitget minimum.
+  if (side === "sell") {
+    const ethPrice = await getSpotPriceUsd("ETHUSDT");
+    const roundedSize = parseFloat(size.toFixed(4));
+    const estimatedUsdValue = roundedSize * ethPrice;
+    if (ethPrice > 0 && estimatedUsdValue < 1.05) {
+      console.warn(
+        `[veydrift bitget] sell order skipped: size=${roundedSize} ETH ≈ $${estimatedUsdValue.toFixed(4)} < $1.05 minimum`,
+      );
+      return { ok: false, error: "Order size below Bitget $1 minimum" };
+    }
+  }
+
   // Live path: credential check then I_UNDERSTAND_REAL_FUNDS gate.
   const creds = getCredentials();
   if (!creds) {
