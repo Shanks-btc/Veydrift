@@ -202,9 +202,14 @@ async function main(): Promise<void> {
     stableValueUsd,
     policy: {
       ...DEFAULT_POLICY,
-      riskOnTargetPct: 50,  // reduced from 80 for Bitget spot
-      neutralTargetPct: 35, // reduced from 45
+      riskOnTargetPct: 50,        // reduced from 80 for Bitget spot
+      neutralTargetPct: 35,       // reduced from 45
       // riskOffTargetPct stays at 18
+      perTradeCapFraction: 0.10,  // max 10% of portfolio per trade ($0.50 on $5)
+      fallbackSwapSizeUsd: 0.5,   // fallback stable swap size
+      rebalanceBandPct: 8,        // wider band to reduce churn on small portfolio
+      killSwitchPct: -25,         // updated kill-switch for Veydrift
+      drawdownAlertPct: -15,      // updated alert threshold
     },
     deps: {
       stateDir: dataDir,
