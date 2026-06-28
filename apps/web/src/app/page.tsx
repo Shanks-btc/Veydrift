@@ -285,7 +285,7 @@ Veydrift  reads live market signals, computes a transparent three-component risk
           />
           <FeatureCard
             icon={<i className="ti ti-shield-check" />}
-            title="Every Decision Logged"
+            title="Provable Autonomous Execution"
             body="Every cycle is recorded from signal to outcome: market inputs, risk score, guardrail checks, allocation target, order result, and portfolio impact. Nothing is hidden behind a black box."
             delay="0.2s"
           />
