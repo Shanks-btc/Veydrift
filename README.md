@@ -1,5 +1,5 @@
 # Veydrift
-**Deterministic Autonomous SPOT Trading Agent · **
+**Deterministic Autonomous SPOT Trading Agent**
 
 Veydrift optimizes for capital preservation while capturing upside. It is a SPOT-only autonomous agent that reads live Bitget market signals, computes a transparent risk score, and rotates a portfolio between volatile and stable assets — with every decision logged to a verifiable audit trail and surfaced live on the dashboard.
 
