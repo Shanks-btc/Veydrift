@@ -1,0 +1,8 @@
+timestamp,date,pair,direction,size,estimated_value_usd,action,reason,order_id,risk_score_r,mode
+2026-06-28T06:53:45.945Z,2026-06-28,ETH/USDT,BUY,0.7619,0.76,BLOCKED,"Rebalance from 34.7% to 50% volatile (mode: Risk-on, R=0.032)",,0.0323,Risk-on
+2026-06-28T07:53:43.941Z,2026-06-28,ETH/USDT,BUY,0.7586,0.76,BLOCKED,"Rebalance from 34.8% to 50% volatile (mode: Risk-on, R=0.024)",,0.0237,Risk-on
+2026-06-28T08:53:44.062Z,2026-06-28,ETH/USDT,BUY,0.7543,0.75,SKIPPED,"Rebalance from 34.9% to 50% volatile (mode: Risk-on, R=0.005)",,0.0052,Risk-on
+2026-06-28T09:53:44.135Z,2026-06-28,ETH/USDT,BUY,0.7567,0.76,SKIPPED,"Rebalance from 34.8% to 50% volatile (mode: Risk-on, R=0.008)",,0.0075,Risk-on
+2026-06-28T10:53:44.201Z,2026-06-28,ETH/USDT,BUY,0.7576,0.76,SKIPPED,"Rebalance from 34.8% to 50% volatile (mode: Risk-on, R=0.016)",,0.0156,Risk-on
+2026-06-28T11:53:44.338Z,2026-06-28,ETH/USDT,BUY,0.7546,0.75,SKIPPED,"Rebalance from 34.9% to 50% volatile (mode: Risk-on, R=0.004)",,0.0037,Risk-on
+2026-06-28T12:53:44.382Z,2026-06-28,ETH/USDT,BUY,0.7538,0.75,SKIPPED,"Rebalance from 34.9% to 50% volatile (mode: Risk-on, R=0.004)",,0.0039,Risk-on
