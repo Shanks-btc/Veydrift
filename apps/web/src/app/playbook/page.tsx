@@ -290,7 +290,7 @@ export default function PlaybookPage() {
           <div className="vd-label" style={{ marginBottom: "16px" }}>External Links</div>
           <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
             <a
-              href="https://www.bitget.com/quantitative/strategy"
+              href="https://www.bitget.com/quantitative/strategy/bdbcfadd-2667-40ca-b946-eb0aefcfc2a3"
               target="_blank"
               rel="noopener noreferrer"
               className="btn-primary"
