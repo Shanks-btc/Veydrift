@@ -96,7 +96,7 @@ function FeatureCard({
   body,
   delay,
 }: {
-  icon: string;
+  icon: React.ReactNode;
   title: string;
   body: string;
   delay: string;
@@ -272,19 +272,19 @@ Veydrift  reads live market signals, computes a transparent three-component risk
         </div>
         <div className="feature-grid">
           <FeatureCard
-            icon="⚙"
+            icon={<i className="ti ti-cpu" />}
             title="Deterministic Risk Engine"
             body="Veydrift does not rely on an LLM to decide trades. It converts three live market inputs into a transparent risk score that determines how much capital can remain in volatile assets versus stablecoins."
             delay="0s"
           />
           <FeatureCard
-            icon="📊"
+            icon={<i className="ti ti-activity" />}
             title="Live Bitget Market Data"
             body="Veydrift reads live Bitget price movement, 24-hour momentum, funding context, and sentiment proxies to measure market risk before every rebalance."
             delay="0.1s"
           />
           <FeatureCard
-            icon="🛡"
+            icon={<i className="ti ti-shield-check" />}
             title="Every Decision Logged"
             body="Every cycle is recorded from signal to outcome: market inputs, risk score, guardrail checks, allocation target, order result, and portfolio impact. Nothing is hidden behind a black box."
             delay="0.2s"
