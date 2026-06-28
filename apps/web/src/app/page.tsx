@@ -202,9 +202,8 @@ export default function LandingPage() {
               marginBottom: "36px",
             }}
           >
-            Veydrift reads live Bitget market signals, computes a transparent
-            3-component risk score, and rotates a spot portfolio — no LLM in
-            the trading decision.
+           
+Veydrift  reads live market signals, computes a transparent three-component risk score and autonomously rebalances between volatile assets and stable assets under predefined guardrails. No LLM makes the trading decision.
           </p>
           <div
             className="fade-in-3"
@@ -215,7 +214,7 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
+ 
       {/* ── SECTION 2: Live Stats Bar ─────────────────────────────────── */}
       <section style={{ ...sec, paddingTop: "40px", paddingBottom: "40px" }}>
         <div className="vd-label" style={{ marginBottom: "12px" }}>Live Stats</div>
@@ -275,19 +274,19 @@ export default function LandingPage() {
           <FeatureCard
             icon="⚙"
             title="Deterministic Risk Engine"
-            body="Every decision is computed from 3 market signals using a transparent formula. Same inputs always produce the same output. No black box, no hallucination risk."
+            body="Veydrift does not rely on an LLM to decide trades. It converts three live market inputs into a transparent risk score that determines how much capital can remain in volatile assets versus stablecoins."
             delay="0s"
           />
           <FeatureCard
             icon="📊"
             title="Live Bitget Market Data"
-            body="Live Bitget market data feeds real-time price action, funding rates, and sentiment signals directly into the risk engine via the Bitget REST API. No external dependencies — all signals sourced from Bitget directly."
+            body="Veydrift reads live Bitget price movement, 24-hour momentum, funding context, and sentiment proxies to measure market risk before every rebalance."
             delay="0.1s"
           />
           <FeatureCard
             icon="🛡"
             title="Every Decision Logged"
-            body="The full audit trail — signals received, risk score computed, gates checked, action taken — is persisted and queryable on the Trade Journal page."
+            body="Every cycle is recorded from signal to outcome: market inputs, risk score, guardrail checks, allocation target, order result, and portfolio impact. Nothing is hidden behind a black box."
             delay="0.2s"
           />
         </div>
